@@ -10,7 +10,9 @@ import {
   Edit, 
   Plus, 
   CheckCircle,
-  FileText
+  Circle,
+  FileText,
+  RefreshCw
 } from 'lucide-react';
 
 const CATEGORIES = [
@@ -34,11 +36,13 @@ export const Transactions = ({
   cards, 
   onAddClick, 
   onEditClick, 
-  onDeleteClick 
+  onDeleteClick,
+  onToggleStatus
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Todos');
   const [selectedSource, setSelectedSource] = useState('Todos'); // 'Todos', accountId, cardId
+  const [selectedStatus, setSelectedStatus] = useState('Todos'); // 'Todos', 'confirmed', 'pending'
   
   // Controle de Mês (Navegação de Meses)
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -69,32 +73,40 @@ export const Transactions = ({
 
   // Filtragem
   const filteredTransactions = transactions.filter((tx) => {
-    const txDate = new Date(tx.date);
+    const txDate = new Date(tx.date + 'T00:00:00');
     const sameMonth = txDate.getMonth() === currentDate.getMonth() && 
                       txDate.getFullYear() === currentDate.getFullYear();
     
     if (!sameMonth) return false;
 
-    // Busca textual
+    // Busca de texto
     const matchesSearch = tx.description.toLowerCase().includes(searchTerm.toLowerCase());
 
     // Categoria
     const matchesCategory = selectedCategory === 'Todos' || tx.category === selectedCategory;
 
+    // Status (Pago vs Pendente)
+    const matchesStatus = selectedStatus === 'Todos' || tx.status === selectedStatus;
+
     // Conta ou Cartão
     let matchesSource = true;
     if (selectedSource !== 'Todos') {
       if (selectedSource.startsWith('card-')) {
-        matchesSource = tx.cardId === selectedSource;
+        matchesSource = tx.cardId === selectedSource.replace('card-', '');
       } else {
         matchesSource = tx.accountId === selectedSource;
       }
     }
 
-    return matchesSearch && matchesCategory && matchesSource;
+    return matchesSearch && matchesCategory && matchesSource && matchesStatus;
   });
 
   const getDestinationLabel = (tx) => {
+    if (tx.type === 'transfer') {
+      const origin = accounts.find(a => a.id === tx.accountId);
+      const dest = accounts.find(a => a.id === tx.destinationAccountId);
+      return `⇅ ${origin ? origin.name : 'Conta'} ➔ ${dest ? dest.name : 'Conta'}`;
+    }
     if (tx.cardId) {
       const card = cards.find(c => c.id === tx.cardId);
       return card ? `💳 ${card.name}` : '💳 Cartão';
@@ -121,13 +133,13 @@ export const Transactions = ({
         >
           {/* Navegação de Meses */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <button className="btn btn-secondary btn-icon" onClick={handlePrevMonth} style={{ borderRadius: '50%' }}>
+            <button className="btn btn-secondary btn-icon" onClick={handlePrevMonth} style={{ borderRadius: '50%', minHeight: '36px', width: '36px' }}>
               <ArrowLeft size={16} />
             </button>
             <h3 style={{ fontSize: '1.1rem', fontWeight: 700, minWidth: '180px', textAlign: 'center' }}>
               {getMonthYearString()}
             </h3>
-            <button className="btn btn-secondary btn-icon" onClick={handleNextMonth} style={{ borderRadius: '50%' }}>
+            <button className="btn btn-secondary btn-icon" onClick={handleNextMonth} style={{ borderRadius: '50%', minHeight: '36px', width: '36px' }}>
               <ArrowRight size={16} />
             </button>
           </div>
@@ -144,7 +156,7 @@ export const Transactions = ({
         <div 
           style={{ 
             display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', 
             gap: '1rem' 
           }}
         >
@@ -191,9 +203,22 @@ export const Transactions = ({
               </optgroup>
               <optgroup label="Cartões de Crédito">
                 {cards.map(card => (
-                  <option key={card.id} value={card.id}>{card.name}</option>
+                  <option key={card.id} value={`card-${card.id}`}>{card.name}</option>
                 ))}
               </optgroup>
+            </select>
+          </div>
+
+          {/* Filtro de Status */}
+          <div>
+            <label>Filtrar por Status</label>
+            <select 
+              value={selectedStatus} 
+              onChange={(e) => setSelectedStatus(e.target.value)}
+            >
+              <option value="Todos">Todos</option>
+              <option value="confirmed">Pagos / Recebidos</option>
+              <option value="pending">Pendentes (Não Pagos)</option>
             </select>
           </div>
         </div>
@@ -205,6 +230,7 @@ export const Transactions = ({
           <table>
             <thead>
               <tr>
+                <th style={{ width: '40px' }}>Status</th>
                 <th>Descrição</th>
                 <th>Categoria</th>
                 <th>Origem/Destino</th>
@@ -217,20 +243,58 @@ export const Transactions = ({
               {filteredTransactions.length > 0 ? (
                 filteredTransactions.map((tx) => {
                   const isIncome = tx.type === 'income';
+                  const isTransfer = tx.type === 'transfer';
                   return (
-                    <tr key={tx.id}>
+                    <tr 
+                      key={tx.id}
+                      style={{ 
+                        opacity: tx.status === 'pending' ? 0.85 : 1,
+                        backgroundColor: tx.status === 'pending' ? 'rgba(255, 255, 255, 0.01)' : 'transparent'
+                      }}
+                    >
                       <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          {tx.status === 'confirmed' ? (
-                            <CheckCircle size={16} className="text-income" title="Confirmado/Conciliado" />
-                          ) : (
-                            <FileText size={16} style={{ color: 'var(--text-secondary)' }} title="Pendente" />
+                        <button
+                          onClick={() => onToggleStatus(tx.id)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            padding: '0.25rem',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: tx.status === 'confirmed' 
+                              ? (isIncome ? 'var(--income)' : (isTransfer ? 'var(--primary)' : 'var(--primary)'))
+                              : 'var(--text-secondary)'
+                          }}
+                          title={tx.status === 'confirmed' ? 'Confirmado (Clique para marcar como Pendente)' : 'Pendente (Clique para confirmar)'}
+                        >
+                          {tx.status === 'confirmed' ? <CheckCircle size={18} /> : <Circle size={18} />}
+                        </button>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <strong style={{ fontSize: '0.9rem', color: tx.status === 'pending' ? 'var(--text-secondary)' : 'var(--text)' }}>
+                            {tx.description}
+                            {tx.installmentNumber && (
+                              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginLeft: '0.4rem', backgroundColor: 'var(--surface-secondary)', padding: '0.1rem 0.35rem', borderRadius: '4px', border: '1px solid var(--border)' }}>
+                                {tx.installmentNumber}/{tx.totalInstallments}
+                              </span>
+                            )}
+                          </strong>
+                          {tx.status === 'pending' && (
+                            <span style={{ fontSize: '0.7rem', color: 'var(--expense)', fontWeight: 600 }}>Pendente</span>
                           )}
-                          <strong style={{ fontSize: '0.9rem' }}>{tx.description}</strong>
                         </div>
                       </td>
                       <td>
-                        <span className="badge badge-pending">{tx.category}</span>
+                        {isTransfer ? (
+                          <span className="badge" style={{ backgroundColor: 'rgba(var(--primary-rgb), 0.1)', color: 'var(--primary)' }}>Transferência</span>
+                        ) : (
+                          <span className={`badge ${isIncome ? 'badge-income' : 'badge-expense'}`}>
+                            {tx.category}
+                          </span>
+                        )}
                       </td>
                       <td>
                         <span style={{ fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-secondary)' }}>
@@ -241,8 +305,8 @@ export const Transactions = ({
                         <span style={{ fontSize: '0.85rem' }}>{formatDate(tx.date)}</span>
                       </td>
                       <td>
-                        <strong className={isIncome ? 'text-income' : 'text-expense'} style={{ fontSize: '0.9rem' }}>
-                          {isIncome ? '+' : '-'} {formatCurrency(tx.amount)}
+                        <strong className={isTransfer ? '' : (isIncome ? 'text-income' : 'text-expense')} style={{ fontSize: '0.9rem', color: isTransfer ? 'var(--text)' : undefined }}>
+                          {isTransfer ? '⇅' : (isIncome ? '+' : '-')} {formatCurrency(tx.amount)}
                         </strong>
                       </td>
                       <td style={{ textAlign: 'center' }}>
@@ -269,7 +333,7 @@ export const Transactions = ({
                 })
               ) : (
                 <tr>
-                  <td colSpan="6" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                  <td colSpan="7" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
                     Nenhum lançamento encontrado para os filtros selecionados neste mês.
                   </td>
                 </tr>

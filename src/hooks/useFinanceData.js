@@ -66,7 +66,6 @@ export const useFinanceData = () => {
   useEffect(() => {
     if (!user || !activeSpaceUserId) return;
 
-    // Escutar mudanças no espaço atual que estou visualizando
     const channel = supabase
       .channel('schema-db-changes')
       .on(
@@ -129,27 +128,23 @@ export const useFinanceData = () => {
     if (!silent) setLoading(true);
 
     try {
-      // Buscar contas filtrando pelo espaço ativo
       const { data: accData, error: accErr } = await supabase
         .from('accounts')
         .select('*')
         .eq('user_id', spaceId)
         .order('name');
       
-      // Buscar cartões filtrando pelo espaço ativo
       const { data: crdData, error: crdErr } = await supabase
         .from('cards')
         .select('*')
         .eq('user_id', spaceId)
         .order('name');
 
-      // Buscar orçamentos filtrando pelo espaço ativo
       const { data: bdgtData, error: bdgtErr } = await supabase
         .from('budgets')
         .select('*')
         .eq('user_id', spaceId);
 
-      // Buscar transações filtrando pelo espaço ativo
       const { data: txData, error: txErr } = await supabase
         .from('transactions')
         .select('*')
@@ -164,7 +159,6 @@ export const useFinanceData = () => {
       setCards(crdData || []);
       setBudgets(bdgtData || []);
       
-      // Mapear os dados das transações vindas do banco formatando adequadamente
       const formattedTxs = (txData || []).map(tx => ({
         id: tx.id,
         description: tx.description,
@@ -173,8 +167,11 @@ export const useFinanceData = () => {
         category: tx.category,
         accountId: tx.account_id,
         cardId: tx.card_id,
+        destinationAccountId: tx.destination_account_id,
         type: tx.type,
-        status: tx.status
+        status: tx.status,
+        installmentNumber: tx.installment_number,
+        totalInstallments: tx.total_installments
       }));
       setTransactions(formattedTxs);
     } catch (err) {
@@ -188,14 +185,12 @@ export const useFinanceData = () => {
   const fetchSharedConfiguration = async () => {
     if (!user) return;
     try {
-      // 1. Sou dono: buscar quem convidei
       const { data: myShares } = await supabase
         .from('shared_access')
         .select('*')
         .eq('owner_id', user.id);
       setMySharedUsers(myShares || []);
 
-      // 2. Sou convidado: buscar espaços que me convidaram
       const { data: guestShares } = await supabase
         .from('shared_access')
         .select('*')
@@ -212,7 +207,7 @@ export const useFinanceData = () => {
     const payload = {
       owner_id: user.id,
       guest_email: guestEmail,
-      owner_email: user.email // Salvar email para mostrar no dropdown do convidado
+      owner_email: user.email
     };
 
     const { error } = await supabase.from('shared_access').insert([payload]);
@@ -245,96 +240,42 @@ export const useFinanceData = () => {
     setActiveSpaceOwnerEmail(ownerEmail);
   };
 
-  // Semear dados mockados iniciais no banco de dados para novos usuários no seu próprio espaço
-  const seedInitialData = async () => {
-    if (!user) return;
-    
-    // Contas
-    const defaultAccs = [
-      { user_id: user.id, name: 'Nubank (Conta)', type: 'checking', balance: 2450.80, color: '#8A05BE' },
-      { user_id: user.id, name: 'Itaú Uniclass', type: 'checking', balance: 5820.00, color: '#EC7000' },
-      { user_id: user.id, name: 'Carteira (Dinheiro)', type: 'cash', balance: 180.00, color: '#2E7D32' },
-    ];
-    const { data: createdAccs } = await supabase.from('accounts').insert(defaultAccs).select();
-
-    // Cartões
-    const defaultCards = [
-      { user_id: user.id, name: 'Nubank Mastercard', limit: 5000.00, invoice: 890.50, closingDay: 3, dueDay: 10, color: '#8A05BE' },
-      { user_id: user.id, name: 'Itaú Visa Click', limit: 12000.00, invoice: 1540.20, closingDay: 8, dueDay: 15, color: '#004B87' },
-    ];
-    const { data: createdCards } = await supabase.from('cards').insert(defaultCards).select();
-
-    // Orçamentos
-    const defaultBudgets = [
-      { user_id: user.id, category: 'Alimentação', limit: 1000.00 },
-      { user_id: user.id, category: 'Transporte', limit: 400.00 },
-      { user_id: user.id, category: 'Lazer', limit: 500.00 },
-      { user_id: user.id, category: 'Moradia', limit: 2500.00 },
-      { user_id: user.id, category: 'Assinaturas', limit: 200.00 },
-    ];
-    await supabase.from('budgets').insert(defaultBudgets);
-
-    // Mapeamento de IDs para transações iniciais
-    const nuAcc = createdAccs?.find(a => a.name.includes('Nubank'))?.id || null;
-    const itauAcc = createdAccs?.find(a => a.name.includes('Itaú'))?.id || null;
-    const walletAcc = createdAccs?.find(a => a.name.includes('Carteira'))?.id || null;
-    const nuCard = createdCards?.find(c => c.name.includes('Nubank'))?.id || null;
-    const itauCard = createdCards?.find(c => c.name.includes('Itaú'))?.id || null;
-
-    const getRecentDate = (daysAgo) => {
-      const date = new Date();
-      date.setDate(date.getDate() - daysAgo);
-      return date.toISOString().split('T')[0];
-    };
-
-    // Transações iniciais
-    const defaultTxs = [
-      { user_id: user.id, description: 'Salário Principal', amount: 9800.00, date: getRecentDate(3), category: 'Rendimentos', account_id: itauAcc, card_id: null, type: 'income', status: 'confirmed' },
-      { user_id: user.id, description: 'Supermercado Pão de Açúcar', amount: 382.40, date: getRecentDate(2), category: 'Alimentação', account_id: null, card_id: nuCard, type: 'expense', status: 'confirmed' },
-      { user_id: user.id, description: 'Posto Shell Combustível', amount: 150.00, date: getRecentDate(1), category: 'Transporte', account_id: null, card_id: nuCard, type: 'expense', status: 'confirmed' },
-      { user_id: user.id, description: 'Netflix Assinatura', amount: 55.90, date: getRecentDate(5), category: 'Assinaturas', account_id: null, card_id: nuCard, type: 'expense', status: 'confirmed' },
-      { user_id: user.id, description: 'Jantar Restaurante Japonês', amount: 180.00, date: getRecentDate(4), category: 'Lazer', account_id: nuAcc, card_id: null, type: 'expense', status: 'confirmed' },
-      { user_id: user.id, description: 'Uber para o Aeroporto', amount: 45.90, date: getRecentDate(0), category: 'Transporte', account_id: nuAcc, card_id: null, type: 'expense', status: 'confirmed' },
-      { user_id: user.id, description: 'Rendimento Poupança', amount: 35.50, date: getRecentDate(4), category: 'Rendimentos', account_id: nuAcc, card_id: null, type: 'income', status: 'confirmed' },
-      { user_id: user.id, description: 'Farmácia Drogasil', amount: 72.80, date: getRecentDate(6), category: 'Saúde', account_id: null, card_id: itauCard, type: 'expense', status: 'confirmed' },
-      { user_id: user.id, description: 'Aluguel do Apartamento', amount: 2200.00, date: getRecentDate(7), category: 'Moradia', account_id: itauAcc, card_id: null, type: 'expense', status: 'confirmed' },
-      { user_id: user.id, description: 'Padaria de Manhã', amount: 15.60, date: getRecentDate(0), category: 'Alimentação', account_id: walletAcc, card_id: null, type: 'expense', status: 'confirmed' },
-    ];
-
-    await supabase.from('transactions').insert(defaultTxs);
-    
-    // Atualizar estado
-    const { data: accountsList } = await supabase.from('accounts').select('*').eq('user_id', user.id).order('name');
-    const { data: cardsList } = await supabase.from('cards').select('*').eq('user_id', user.id).order('name');
-    const { data: budgetsList } = await supabase.from('budgets').select('*').eq('user_id', user.id);
-    const { data: transactionsList } = await supabase.from('transactions').select('*').eq('user_id', user.id).order('date', { ascending: false });
-
-    setAccounts(accountsList || []);
-    setCards(cardsList || []);
-    setBudgets(budgetsList || []);
-    
-    const formatted = (transactionsList || []).map(tx => ({
-      id: tx.id,
-      description: tx.description,
-      amount: Number(tx.amount),
-      date: tx.date,
-      category: tx.category,
-      accountId: tx.account_id,
-      cardId: tx.card_id,
-      type: tx.type,
-      status: tx.status
-    }));
-    setTransactions(formatted);
-  };
-
   // Ajustar saldos locais e em nuvem no espaço ativo
   const adjustAccountOrCardBalance = async (tx, isAdding, isRollback = false) => {
     if (!activeSpaceUserId) return;
     const multiplier = (isAdding ? 1 : -1) * (isRollback ? -1 : 1);
+    
+    // CASO 1: TRANSFERÊNCIA ENTRE CONTAS
+    if (tx.type === 'transfer') {
+      if (tx.status !== 'confirmed') return; // Transferências pendentes não movem saldo!
+      const amount = tx.amount * multiplier;
+
+      // Debitar da origem
+      if (tx.accountId) {
+        setAccounts(prev => prev.map(acc => acc.id === tx.accountId ? { ...acc, balance: Number((acc.balance - amount).toFixed(2)) } : acc));
+        const { data: acc } = await supabase.from('accounts').select('balance').eq('id', tx.accountId).single();
+        if (acc) {
+          await supabase.from('accounts').update({ balance: Number((acc.balance - amount).toFixed(2)) }).eq('id', tx.accountId);
+        }
+      }
+      // Creditar no destino
+      if (tx.destinationAccountId) {
+        setAccounts(prev => prev.map(acc => acc.id === tx.destinationAccountId ? { ...acc, balance: Number((acc.balance + amount).toFixed(2)) } : acc));
+        const { data: acc } = await supabase.from('accounts').select('balance').eq('id', tx.destinationAccountId).single();
+        if (acc) {
+          await supabase.from('accounts').update({ balance: Number((acc.balance + amount).toFixed(2)) }).eq('id', tx.destinationAccountId);
+        }
+      }
+      return;
+    }
+
+    // CASO 2: DESPESA OU RECEITA
     const diff = (tx.type === 'income' ? tx.amount : -tx.amount) * multiplier;
 
     if (tx.accountId) {
-      // 1. Atualizar localmente
+      // Se for conta corrente/dinheiro, SÓ atualiza o saldo se a transação estiver CONFIRMADA (Pago/Recebido)
+      if (tx.status !== 'confirmed') return;
+
       setAccounts(prev => prev.map(acc => {
         if (acc.id === tx.accountId) {
           return { ...acc, balance: Number((acc.balance + diff).toFixed(2)) };
@@ -342,16 +283,14 @@ export const useFinanceData = () => {
         return acc;
       }));
 
-      // 2. Atualizar no Supabase
       const { data: acc } = await supabase.from('accounts').select('balance').eq('id', tx.accountId).single();
       if (acc) {
         await supabase.from('accounts').update({ balance: Number((acc.balance + diff).toFixed(2)) }).eq('id', tx.accountId);
       }
     } else if (tx.cardId) {
-      // Despesas de cartão aumentam a fatura, receitas (estorno) reduzem
+      // Cartões de crédito sempre atualizam a fatura imediatamente (reflete a cobrança lançada na fatura)
       const cardDiff = (tx.type === 'expense' ? tx.amount : -tx.amount) * multiplier;
 
-      // 1. Atualizar localmente
       setCards(prev => prev.map(card => {
         if (card.id === tx.cardId) {
           return { ...card, invoice: Number((card.invoice + cardDiff).toFixed(2)) };
@@ -359,7 +298,6 @@ export const useFinanceData = () => {
         return card;
       }));
 
-      // 2. Atualizar no Supabase
       const { data: card } = await supabase.from('cards').select('invoice').eq('id', tx.cardId).single();
       if (card) {
         await supabase.from('cards').update({ invoice: Number((card.invoice + cardDiff).toFixed(2)) }).eq('id', tx.cardId);
@@ -367,51 +305,121 @@ export const useFinanceData = () => {
     }
   };
 
-  // ADICIONAR TRANSAÇÃO (salva no espaço ativo)
+  // ADICIONAR TRANSAÇÃO (salva no espaço ativo, com suporte a parcelas e transferências)
   const addTransaction = async (newTx) => {
     if (!activeSpaceUserId) return;
 
-    const txPayload = {
-      user_id: activeSpaceUserId, // vincula ao dono do espaço
-      description: newTx.description,
-      amount: newTx.amount,
-      date: newTx.date,
-      category: newTx.category,
-      account_id: newTx.accountId || null,
-      card_id: newTx.cardId || null,
-      type: newTx.type,
-      status: newTx.status || 'confirmed',
-    };
+    // Se for parcelado, rodar o laço de inserção de parcelas
+    if (newTx.isInstallment && newTx.installmentCount > 1) {
+      const count = newTx.installmentCount;
+      const typeOfInstallment = newTx.installmentType || 'divide'; // 'divide' ou 'repeat'
+      const baseAmount = typeOfInstallment === 'divide' 
+        ? Number((newTx.amount / count).toFixed(2)) 
+        : newTx.amount;
 
-    const { data, error } = await supabase.from('transactions').insert([txPayload]).select();
-    
-    if (error) {
-      console.error('Erro ao adicionar transação:', error.message);
-      return;
+      const txsToInsert = [];
+      for (let i = 1; i <= count; i++) {
+        // Calcular data: somar (i-1) meses
+        const baseDate = new Date(newTx.date + 'T00:00:00');
+        baseDate.setMonth(baseDate.getMonth() + (i - 1));
+        const installmentDate = baseDate.toISOString().split('T')[0];
+
+        // A primeira parcela pode ficar como 'confirmed' (pago) se o usuário selecionou, 
+        // mas as parcelas futuras devem sempre ficar como 'pending' (não pago) por segurança
+        const installmentStatus = i === 1 ? newTx.status : 'pending';
+
+        txsToInsert.push({
+          user_id: activeSpaceUserId,
+          description: `${newTx.description} (${i}/${count})`,
+          amount: baseAmount,
+          date: installmentDate,
+          category: newTx.category,
+          account_id: newTx.accountId || null,
+          card_id: newTx.cardId || null,
+          destination_account_id: newTx.destinationAccountId || null,
+          type: newTx.type,
+          status: installmentStatus,
+          installment_number: i,
+          total_installments: count
+        });
+      }
+
+      const { data, error } = await supabase.from('transactions').insert(txsToInsert).select();
+      if (error) {
+        console.error('Erro ao adicionar transações parceladas:', error.message);
+        return;
+      }
+
+      // Adicionar e atualizar saldos de cada uma
+      const formattedInserted = data.map(item => ({
+        id: item.id,
+        description: item.description,
+        amount: Number(item.amount),
+        date: item.date,
+        category: item.category,
+        accountId: item.account_id,
+        cardId: item.card_id,
+        destinationAccountId: item.destination_account_id,
+        type: item.type,
+        status: item.status,
+        installmentNumber: item.installment_number,
+        totalInstallments: item.total_installments
+      }));
+
+      setTransactions(prev => [...formattedInserted, ...prev]);
+
+      for (const tx of formattedInserted) {
+        await adjustAccountOrCardBalance(tx, true);
+      }
+
+    } else {
+      // Lançamento normal de única parcela ou transferência
+      const txPayload = {
+        user_id: activeSpaceUserId,
+        description: newTx.description,
+        amount: newTx.amount,
+        date: newTx.date,
+        category: newTx.category,
+        account_id: newTx.accountId || null,
+        card_id: newTx.cardId || null,
+        destination_account_id: newTx.destinationAccountId || null,
+        type: newTx.type,
+        status: newTx.status || 'confirmed',
+      };
+
+      const { data, error } = await supabase.from('transactions').insert([txPayload]).select();
+      
+      if (error) {
+        console.error('Erro ao adicionar transação:', error.message);
+        return;
+      }
+
+      const insertedTx = {
+        id: data[0].id,
+        description: data[0].description,
+        amount: Number(data[0].amount),
+        date: data[0].date,
+        category: data[0].category,
+        accountId: data[0].account_id,
+        cardId: data[0].card_id,
+        destinationAccountId: data[0].destination_account_id,
+        type: data[0].type,
+        status: data[0].status,
+        installmentNumber: data[0].installment_number,
+        totalInstallments: data[0].total_installments
+      };
+
+      setTransactions(prev => [insertedTx, ...prev]);
+      await adjustAccountOrCardBalance(insertedTx, true);
     }
-
-    const insertedTx = {
-      id: data[0].id,
-      description: data[0].description,
-      amount: Number(data[0].amount),
-      date: data[0].date,
-      category: data[0].category,
-      accountId: data[0].account_id,
-      cardId: data[0].card_id,
-      type: data[0].type,
-      status: data[0].status,
-    };
-
-    setTransactions(prev => [insertedTx, ...prev]);
-    adjustAccountOrCardBalance(insertedTx, true);
   };
 
   // EDITAR TRANSAÇÃO
   const editTransaction = async (id, updatedTx) => {
-    // Reverter saldo antigo
     const oldTx = transactions.find(t => t.id === id);
     if (!oldTx) return;
     
+    // Reverter saldo antigo
     await adjustAccountOrCardBalance(oldTx, false, true);
 
     const txPayload = {
@@ -421,6 +429,7 @@ export const useFinanceData = () => {
       category: updatedTx.category,
       account_id: updatedTx.accountId || null,
       card_id: updatedTx.cardId || null,
+      destination_account_id: updatedTx.destinationAccountId || null,
       type: updatedTx.type,
       status: updatedTx.status || 'confirmed',
     };
@@ -428,10 +437,11 @@ export const useFinanceData = () => {
     const { error } = await supabase.from('transactions').update(txPayload).eq('id', id);
     if (error) {
       console.error('Erro ao editar transação:', error.message);
+      // Destruição de reversão se falhar
+      await adjustAccountOrCardBalance(oldTx, true);
       return;
     }
 
-    // Salvar transação nova localmente
     setTransactions(prev => prev.map(t => t.id === id ? { ...t, ...updatedTx } : t));
 
     // Aplicar saldo novo
@@ -449,12 +459,46 @@ export const useFinanceData = () => {
     const { error } = await supabase.from('transactions').delete().eq('id', id);
     if (error) {
       console.error('Erro ao excluir transação:', error.message);
+      // Devolver saldo se falhar
       await adjustAccountOrCardBalance(oldTx, true);
       return;
     }
     
-    // Remover localmente
     setTransactions(prev => prev.filter(t => t.id !== id));
+  };
+
+  // INTERRUPTOR RÁPIDO DE STATUS: CONFIRMAR PAGAMENTO (PAGO/PENDENTE)
+  const toggleTransactionStatus = async (id) => {
+    const oldTx = transactions.find(t => t.id === id);
+    if (!oldTx) return;
+
+    const newStatus = oldTx.status === 'confirmed' ? 'pending' : 'confirmed';
+
+    // Se estiver confirmando: precisamos somar/debitar o saldo.
+    // Se estiver pendenciando: precisamos reverter o saldo.
+    if (newStatus === 'confirmed') {
+      await adjustAccountOrCardBalance({ ...oldTx, status: 'confirmed' }, true);
+    } else {
+      await adjustAccountOrCardBalance(oldTx, false);
+    }
+
+    const { error } = await supabase
+      .from('transactions')
+      .update({ status: newStatus })
+      .eq('id', id);
+
+    if (error) {
+      console.error('Erro ao alternar status da transação:', error.message);
+      // Reverter alteração local de saldo se falhar no banco
+      if (newStatus === 'confirmed') {
+        await adjustAccountOrCardBalance({ ...oldTx, status: 'confirmed' }, false);
+      } else {
+        await adjustAccountOrCardBalance(oldTx, true);
+      }
+      return;
+    }
+
+    setTransactions(prev => prev.map(t => t.id === id ? { ...t, status: newStatus } : t));
   };
 
   // GERENCIAR CONTAS
@@ -547,7 +591,6 @@ export const useFinanceData = () => {
   const importOfxTransactions = async (reconciledList, unmatchedList, accountId, cardId) => {
     if (!activeSpaceUserId) return;
     
-    // 1. Processar os novos (não conciliados)
     const newTxsPayload = unmatchedList.map(item => ({
       user_id: activeSpaceUserId,
       description: item.description,
@@ -575,20 +618,18 @@ export const useFinanceData = () => {
         category: item.category,
         accountId: item.account_id,
         cardId: item.card_id,
+        destinationAccountId: item.destination_account_id,
         type: item.type,
         status: item.status
       }));
 
-      // Adicionar localmente
       setTransactions(prev => [...formattedInserted, ...prev]);
 
-      // Atualizar saldos de todas as transações novas
       for (const tx of formattedInserted) {
         await adjustAccountOrCardBalance(tx, true);
       }
     }
 
-    // 2. Processar os conciliados
     const reconciledIds = reconciledList.map(item => item.matchedWith.id);
     if (reconciledIds.length > 0) {
       const { error } = await supabase
@@ -599,6 +640,12 @@ export const useFinanceData = () => {
       if (error) {
         console.error('Erro ao atualizar transações conciliadas:', error.message);
       } else {
+        // Para cada transação alterada de pendente para confirmado, atualiza saldos
+        const updatedTxs = transactions.filter(t => reconciledIds.includes(t.id) && t.status !== 'confirmed');
+        for (const tx of updatedTxs) {
+          await adjustAccountOrCardBalance({ ...tx, status: 'confirmed' }, true);
+        }
+
         setTransactions(prev => prev.map(t => {
           if (reconciledIds.includes(t.id)) {
             return { ...t, status: 'confirmed' };
@@ -626,6 +673,7 @@ export const useFinanceData = () => {
     addTransaction,
     editTransaction,
     deleteTransaction,
+    toggleTransactionStatus,
     addAccount,
     editAccount,
     addCard,

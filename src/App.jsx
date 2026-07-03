@@ -156,6 +156,7 @@ function App() {
             onAddTransaction={addTransaction}
             onEditTransaction={handleOpenEditTx}
             onDeleteTransaction={deleteTransaction}
+            onToggleStatus={toggleTransactionStatus}
             onViewAllTransactions={() => setActivePage('transactions')}
             onManageAccountsCards={() => setActivePage('accounts')}
           />
@@ -169,6 +170,7 @@ function App() {
             onAddClick={handleOpenAddTx}
             onEditClick={handleOpenEditTx}
             onDeleteClick={deleteTransaction}
+            onToggleStatus={toggleTransactionStatus}
           />
         );
       case 'planning':

@@ -12,6 +12,7 @@ export const Dashboard = ({
   onAddTransaction, 
   onEditTransaction, 
   onDeleteTransaction, 
+  onToggleStatus,
   onViewAllTransactions, 
   onManageAccountsCards
 }) => {
@@ -33,6 +34,7 @@ export const Dashboard = ({
         transactions={transactions} 
         onEditTransaction={onEditTransaction} 
         onDeleteTransaction={onDeleteTransaction} 
+        onToggleStatus={onToggleStatus}
         onViewAll={onViewAllTransactions}
       />
       <CardLimits 
