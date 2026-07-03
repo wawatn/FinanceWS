@@ -7,16 +7,27 @@ import {
   PieChart, 
   Plus, 
   PiggyBank,
-  LogOut
+  LogOut,
+  Settings
 } from 'lucide-react';
 
 export const Navigation = ({ activePage, setActivePage, onOpenAddTransaction, onLogout }) => {
-  const menuItems = [
+  // Menu completo para Desktop
+  const desktopMenuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'transactions', label: 'Transações', icon: ArrowLeftRight },
     { id: 'planning', label: 'Planejamento', icon: Target },
     { id: 'accounts', label: 'Contas & Cartões', icon: Wallet },
     { id: 'reports', label: 'Relatórios', icon: PieChart },
+    { id: 'settings', label: 'Configurações', icon: Settings },
+  ];
+
+  // Menu otimizado de 4 abas para Mobile (o "+" fica no centro como FAB)
+  const mobileMenuItems = [
+    { id: 'dashboard', label: 'Painel', icon: LayoutDashboard },
+    { id: 'transactions', label: 'Extrato', icon: ArrowLeftRight },
+    { id: 'planning', label: 'Metas', icon: Target },
+    { id: 'settings', label: 'Ajustes', icon: Settings },
   ];
 
   return (
@@ -31,7 +42,7 @@ export const Navigation = ({ activePage, setActivePage, onOpenAddTransaction, on
         </div>
         
         <ul className="sidebar-menu">
-          {menuItems.map((item) => {
+          {desktopMenuItems.map((item) => {
             const Icon = item.icon;
             return (
               <li key={item.id}>
@@ -71,9 +82,10 @@ export const Navigation = ({ activePage, setActivePage, onOpenAddTransaction, on
         </div>
       </aside>
 
-      {/* BOTTOM NAVIGATION FOR MOBILE */}
+      {/* BOTTOM NAVIGATION FOR MOBILE (Otimizado de 5 itens no total) */}
       <nav className="bottom-nav">
-        {menuItems.slice(0, 2).map((item) => {
+        {/* Primeiros 2 itens (Painel, Extrato) */}
+        {mobileMenuItems.slice(0, 2).map((item) => {
           const Icon = item.icon;
           return (
             <a 
@@ -81,20 +93,21 @@ export const Navigation = ({ activePage, setActivePage, onOpenAddTransaction, on
               className={`bottom-nav-item ${activePage === item.id ? 'active' : ''}`}
               onClick={() => setActivePage(item.id)}
             >
-              <Icon />
+              <Icon size={20} />
               <span>{item.label}</span>
             </a>
           );
         })}
 
-        {/* Botão de Lançamento Rápido no Centro */}
+        {/* Botão de Lançamento Rápido no Centro (FAB) */}
         <div className="bottom-nav-center">
-          <button className="fab-button" onClick={onOpenAddTransaction}>
-            <Plus size={28} />
+          <button className="fab-button" onClick={onOpenAddTransaction} title="Novo Lançamento">
+            <Plus size={24} />
           </button>
         </div>
 
-        {menuItems.slice(2).map((item) => {
+        {/* Últimos 2 itens (Metas, Ajustes) */}
+        {mobileMenuItems.slice(2).map((item) => {
           const Icon = item.icon;
           return (
             <a 
@@ -102,7 +115,7 @@ export const Navigation = ({ activePage, setActivePage, onOpenAddTransaction, on
               className={`bottom-nav-item ${activePage === item.id ? 'active' : ''}`}
               onClick={() => setActivePage(item.id)}
             >
-              <Icon />
+              <Icon size={20} />
               <span>{item.label}</span>
             </a>
           );

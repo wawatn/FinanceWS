@@ -4,7 +4,6 @@ import { CategoryChart } from '../components/Dashboard/CategoryChart';
 import { CashFlowSummary } from '../components/Dashboard/CashFlowSummary';
 import { RecentTransactions } from '../components/Dashboard/RecentTransactions';
 import { CardLimits } from '../components/Dashboard/CardLimits';
-import { SharingSettings } from '../components/Dashboard/SharingSettings';
 
 export const Dashboard = ({ 
   accounts, 
@@ -14,10 +13,7 @@ export const Dashboard = ({
   onEditTransaction, 
   onDeleteTransaction, 
   onViewAllTransactions, 
-  onManageAccountsCards,
-  mySharedUsers,
-  inviteUser,
-  removeInvite
+  onManageAccountsCards
 }) => {
   return (
     <div className="dashboard-grid">
@@ -42,13 +38,6 @@ export const Dashboard = ({
       <CardLimits 
         cards={cards} 
         onManage={onManageAccountsCards} 
-      />
-
-      {/* Painel de Compartilhamento do Banco */}
-      <SharingSettings 
-        sharedUsers={mySharedUsers}
-        onInvite={inviteUser}
-        onRemoveInvite={removeInvite}
       />
     </div>
   );

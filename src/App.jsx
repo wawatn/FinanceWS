@@ -8,6 +8,7 @@ import { Transactions } from './pages/Transactions';
 import { Planning } from './pages/Planning';
 import { AccountsCards } from './pages/AccountsCards';
 import { Reports } from './pages/Reports';
+import { Settings } from './pages/Settings';
 import { Auth } from './pages/Auth';
 import { PiggyBank } from 'lucide-react';
 
@@ -157,9 +158,6 @@ function App() {
             onDeleteTransaction={deleteTransaction}
             onViewAllTransactions={() => setActivePage('transactions')}
             onManageAccountsCards={() => setActivePage('accounts')}
-            mySharedUsers={mySharedUsers}
-            inviteUser={inviteUser}
-            removeInvite={removeInvite}
           />
         );
       case 'transactions':
@@ -191,6 +189,22 @@ function App() {
         );
       case 'reports':
         return <Reports transactions={transactions} />;
+      case 'settings':
+        return (
+          <Settings
+            user={user}
+            activeSpaceUserId={activeSpaceUserId}
+            sharedSpaces={sharedSpaces}
+            switchSpace={switchSpace}
+            mySharedUsers={mySharedUsers}
+            inviteUser={inviteUser}
+            removeInvite={removeInvite}
+            theme={theme}
+            toggleTheme={toggleTheme}
+            onLogout={handleLogout}
+            onNavigateToPage={setActivePage}
+          />
+        );
       default:
         return <div>Página não encontrada</div>;
     }
@@ -215,9 +229,6 @@ function App() {
           onOpenImport={() => setIsOfxOpen(true)}
           onLogout={handleLogout}
           user={user}
-          activeSpaceUserId={activeSpaceUserId}
-          sharedSpaces={sharedSpaces}
-          switchSpace={switchSpace}
         />
 
         <main className="main-content">

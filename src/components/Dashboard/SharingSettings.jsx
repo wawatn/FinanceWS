@@ -28,14 +28,7 @@ export const SharingSettings = ({ sharedUsers, onInvite, onRemoveInvite }) => {
         <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Compartilhar Espaço Financeiro</h3>
       </div>
 
-      <div 
-        style={{ 
-          display: 'grid', 
-          gridTemplateColumns: '1fr 1fr', 
-          gap: '2rem',
-          alignItems: 'start'
-        }}
-      >
+      <div className="sharing-grid">
         {/* Formulário de Convidar */}
         <div>
           <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.75rem' }}>
@@ -67,7 +60,7 @@ export const SharingSettings = ({ sharedUsers, onInvite, onRemoveInvite }) => {
         </div>
 
         {/* Lista de Acessos Ativos */}
-        <div style={{ borderLeft: '1px solid var(--border)', paddingLeft: '2rem' }}>
+        <div className="sharing-list-container">
           <strong style={{ fontSize: '0.9rem', display: 'block', marginBottom: '0.75rem' }}>
             Pessoas com acesso ao seu banco ({sharedUsers.length})
           </strong>

@@ -680,3 +680,29 @@ tr:hover td {
   background-color: rgba(255, 179, 0, 0.1);
   color: var(--warning);
 }
+
+/* Painel de Compartilhamento Responsivo */
+.sharing-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+.sharing-list-container {
+  border-left: 1px solid var(--border);
+  padding-left: 2rem;
+}
+
+@media (max-width: 768px) {
+  .sharing-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  .sharing-list-container {
+    border-left: none;
+    padding-left: 0;
+    border-top: 1px solid var(--border);
+    padding-top: 1.5rem;
+  }
+}
