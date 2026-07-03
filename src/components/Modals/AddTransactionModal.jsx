@@ -333,8 +333,8 @@ export const AddTransactionModal = ({ isOpen, onClose, onSave, editingTransactio
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
-          <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+          <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', overflowY: 'auto', flex: 1 }}>
             
             {/* Toggle Tipo: Despesa vs Receita vs Transferência */}
             <div style={{ display: 'flex', backgroundColor: 'var(--surface-secondary)', padding: '0.25rem', borderRadius: '12px' }}>
