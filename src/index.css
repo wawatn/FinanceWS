@@ -523,6 +523,45 @@ label {
 
 @media (max-width: 580px) {
   .col-3 { grid-column: span 12; }
+
+  /* Estilização Bottom Sheet para Modals */
+  .modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .modal-content {
+    max-width: 100%;
+    border-radius: 24px 24px 0 0;
+    animation: bottomSheetEnter 0.28s cubic-bezier(0.32, 0.94, 0.6, 1);
+    max-height: 92vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  @keyframes bottomSheetEnter {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  .modal-body {
+    max-height: none;
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.25rem 1.25rem 2.5rem 1.25rem;
+  }
+
+  /* Otimização de toque (Tap Targets) no Celular */
+  input, select, textarea {
+    padding: 0.85rem 1rem;
+    font-size: 1rem;
+  }
+
+  .btn {
+    padding: 0.85rem 1.5rem;
+    font-size: 1rem;
+    min-height: 48px; /* Altura ideal de toque da Google/Apple */
+  }
 }
 
 /* Smart Input Panel */
