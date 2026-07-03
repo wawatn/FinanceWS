@@ -160,28 +160,23 @@ export const useFinanceData = () => {
         throw new Error('Falha ao carregar dados do espaço');
       }
 
-      // Se for o MEU espaço e estiver tudo vazio, semeia os dados iniciais
-      if (spaceId === user.id && accData.length === 0 && crdData.length === 0 && txData.length === 0) {
-        await seedInitialData();
-      } else {
-        setAccounts(accData || []);
-        setCards(crdData || []);
-        setBudgets(bdgtData || []);
-        
-        // Mapear os dados das transações vindas do banco formatando adequadamente
-        const formattedTxs = (txData || []).map(tx => ({
-          id: tx.id,
-          description: tx.description,
-          amount: Number(tx.amount),
-          date: tx.date,
-          category: tx.category,
-          accountId: tx.account_id,
-          cardId: tx.card_id,
-          type: tx.type,
-          status: tx.status
-        }));
-        setTransactions(formattedTxs);
-      }
+      setAccounts(accData || []);
+      setCards(crdData || []);
+      setBudgets(bdgtData || []);
+      
+      // Mapear os dados das transações vindas do banco formatando adequadamente
+      const formattedTxs = (txData || []).map(tx => ({
+        id: tx.id,
+        description: tx.description,
+        amount: Number(tx.amount),
+        date: tx.date,
+        category: tx.category,
+        accountId: tx.account_id,
+        cardId: tx.card_id,
+        type: tx.type,
+        status: tx.status
+      }));
+      setTransactions(formattedTxs);
     } catch (err) {
       console.error('Erro ao buscar dados:', err.message);
     } finally {
