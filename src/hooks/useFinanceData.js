@@ -5,6 +5,12 @@ export const useFinanceData = () => {
   const [session, setSession] = useState(null);
   const [user, setUser] = useState(null);
   
+  // Controle de Espaço Ativo (Multi-Workspace)
+  const [activeSpaceUserId, setActiveSpaceUserId] = useState(null);
+  const [activeSpaceOwnerEmail, setActiveSpaceOwnerEmail] = useState('Meu Espaço');
+  const [sharedSpaces, setSharedSpaces] = useState([]); // Espaços onde sou Guest
+  const [mySharedUsers, setMySharedUsers] = useState([]); // Guests que convidei
+  
   const [accounts, setAccounts] = useState([]);
   const [cards, setCards] = useState([]);
   const [budgets, setBudgets] = useState([]);
@@ -20,17 +26,27 @@ export const useFinanceData = () => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      if (!session) setLoading(false);
+      if (session?.user) {
+        setActiveSpaceUserId(session.user.id);
+      } else {
+        setLoading(false);
+      }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
-      if (!session) {
+      if (session?.user) {
+        setActiveSpaceUserId(session.user.id);
+      } else {
         setAccounts([]);
         setCards([]);
         setTransactions([]);
         setBudgets([]);
+        setSharedSpaces([]);
+        setMySharedUsers([]);
+        setActiveSpaceUserId(null);
+        setActiveSpaceOwnerEmail('Meu Espaço');
         setLoading(false);
       }
     });
@@ -38,43 +54,63 @@ export const useFinanceData = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  // 2. Carregar dados do usuário logado
+  // 2. Carregar dados do usuário e configurações de compartilhamento
   useEffect(() => {
-    if (user) {
-      fetchUserData();
+    if (user && activeSpaceUserId) {
+      fetchUserData(false, activeSpaceUserId);
+      fetchSharedConfiguration();
     }
-  }, [user]);
+  }, [user, activeSpaceUserId]);
 
   // 3. Sincronização em tempo real (Supabase Realtime)
   useEffect(() => {
-    if (!user) return;
+    if (!user || !activeSpaceUserId) return;
 
+    // Escutar mudanças no espaço atual que estou visualizando
     const channel = supabase
       .channel('schema-db-changes')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'transactions', filter: `user_id=eq.${user.id}` },
-        () => fetchUserData(true)
+        { event: '*', schema: 'public', table: 'transactions', filter: `user_id=eq.${activeSpaceUserId}` },
+        () => fetchUserData(true, activeSpaceUserId)
       )
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'accounts', filter: `user_id=eq.${user.id}` },
-        () => fetchUserData(true)
+        { event: '*', schema: 'public', table: 'accounts', filter: `user_id=eq.${activeSpaceUserId}` },
+        () => fetchUserData(true, activeSpaceUserId)
       )
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'cards', filter: `user_id=eq.${user.id}` },
-        () => fetchUserData(true)
+        { event: '*', schema: 'public', table: 'cards', filter: `user_id=eq.${activeSpaceUserId}` },
+        () => fetchUserData(true, activeSpaceUserId)
       )
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'budgets', filter: `user_id=eq.${user.id}` },
-        () => fetchUserData(true)
+        { event: '*', schema: 'public', table: 'budgets', filter: `user_id=eq.${activeSpaceUserId}` },
+        () => fetchUserData(true, activeSpaceUserId)
       )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
+    };
+  }, [user, activeSpaceUserId]);
+
+  // Escutar atualizações na lista de compartilhamentos em si
+  useEffect(() => {
+    if (!user) return;
+
+    const shareChannel = supabase
+      .channel('share-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'shared_access' },
+        () => fetchSharedConfiguration()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(shareChannel);
     };
   }, [user]);
 
@@ -88,44 +124,63 @@ export const useFinanceData = () => {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
   };
 
-  const fetchUserData = async (silent = false) => {
+  const fetchUserData = async (silent = false, spaceId = activeSpaceUserId) => {
+    if (!spaceId) return;
     if (!silent) setLoading(true);
+
     try {
-      // Buscar contas
+      // Buscar contas filtrando pelo espaço ativo
       const { data: accData, error: accErr } = await supabase
         .from('accounts')
         .select('*')
+        .eq('user_id', spaceId)
         .order('name');
       
-      // Buscar cartões
+      // Buscar cartões filtrando pelo espaço ativo
       const { data: crdData, error: crdErr } = await supabase
         .from('cards')
         .select('*')
+        .eq('user_id', spaceId)
         .order('name');
 
-      // Buscar orçamentos
+      // Buscar orçamentos filtrando pelo espaço ativo
       const { data: bdgtData, error: bdgtErr } = await supabase
         .from('budgets')
-        .select('*');
+        .select('*')
+        .eq('user_id', spaceId);
 
-      // Buscar transações
+      // Buscar transações filtrando pelo espaço ativo
       const { data: txData, error: txErr } = await supabase
         .from('transactions')
         .select('*')
+        .eq('user_id', spaceId)
         .order('date', { ascending: false });
 
       if (accErr || crdErr || bdgtErr || txErr) {
-        throw new Error('Falha ao carregar dados');
+        throw new Error('Falha ao carregar dados do espaço');
       }
 
-      // Se for um novo usuário, podemos semear dados iniciais simulando Mobills
-      if (accData.length === 0 && crdData.length === 0 && txData.length === 0) {
+      // Se for o MEU espaço e estiver tudo vazio, semeia os dados iniciais
+      if (spaceId === user.id && accData.length === 0 && crdData.length === 0 && txData.length === 0) {
         await seedInitialData();
       } else {
         setAccounts(accData || []);
         setCards(crdData || []);
         setBudgets(bdgtData || []);
-        setTransactions(txData || []);
+        
+        // Mapear os dados das transações vindas do banco formatando adequadamente
+        const formattedTxs = (txData || []).map(tx => ({
+          id: tx.id,
+          description: tx.description,
+          amount: Number(tx.amount),
+          date: tx.date,
+          category: tx.category,
+          accountId: tx.account_id,
+          cardId: tx.card_id,
+          type: tx.type,
+          status: tx.status
+        }));
+        setTransactions(formattedTxs);
       }
     } catch (err) {
       console.error('Erro ao buscar dados:', err.message);
@@ -134,7 +189,68 @@ export const useFinanceData = () => {
     }
   };
 
-  // Semear dados mockados iniciais no banco de dados para novos usuários
+  // Buscar configurações de compartilhamento
+  const fetchSharedConfiguration = async () => {
+    if (!user) return;
+    try {
+      // 1. Sou dono: buscar quem convidei
+      const { data: myShares } = await supabase
+        .from('shared_access')
+        .select('*')
+        .eq('owner_id', user.id);
+      setMySharedUsers(myShares || []);
+
+      // 2. Sou convidado: buscar espaços que me convidaram
+      const { data: guestShares } = await supabase
+        .from('shared_access')
+        .select('*')
+        .eq('guest_email', user.email);
+      setSharedSpaces(guestShares || []);
+    } catch (err) {
+      console.error('Erro ao carregar compartilhamentos:', err);
+    }
+  };
+
+  // Convidar outro e-mail
+  const inviteUser = async (guestEmail) => {
+    if (!user) return;
+    const payload = {
+      owner_id: user.id,
+      guest_email: guestEmail,
+      owner_email: user.email // Salvar email para mostrar no dropdown do convidado
+    };
+
+    const { error } = await supabase.from('shared_access').insert([payload]);
+    if (error) {
+      alert(`Erro ao compartilhar: ${error.message}`);
+      throw error;
+    }
+    fetchSharedConfiguration();
+  };
+
+  // Revogar acesso de um e-mail
+  const removeInvite = async (guestEmail) => {
+    if (!user) return;
+    const { error } = await supabase
+      .from('shared_access')
+      .delete()
+      .eq('owner_id', user.id)
+      .eq('guest_email', guestEmail);
+    
+    if (error) {
+      alert(`Erro ao remover compartilhamento: ${error.message}`);
+      return;
+    }
+    fetchSharedConfiguration();
+  };
+
+  // Trocar de Espaço de Visualização
+  const switchSpace = (spaceId, ownerEmail = 'Meu Espaço') => {
+    setActiveSpaceUserId(spaceId);
+    setActiveSpaceOwnerEmail(ownerEmail);
+  };
+
+  // Semear dados mockados iniciais no banco de dados para novos usuários no seu próprio espaço
   const seedInitialData = async () => {
     if (!user) return;
     
@@ -192,20 +308,33 @@ export const useFinanceData = () => {
 
     await supabase.from('transactions').insert(defaultTxs);
     
-    // Atualizar estado re-puxando tudo do banco de dados agora povoado
-    const { data: accountsList } = await supabase.from('accounts').select('*').order('name');
-    const { data: cardsList } = await supabase.from('cards').select('*').order('name');
-    const { data: budgetsList } = await supabase.from('budgets').select('*');
-    const { data: transactionsList } = await supabase.from('transactions').select('*').order('date', { ascending: false });
+    // Atualizar estado
+    const { data: accountsList } = await supabase.from('accounts').select('*').eq('user_id', user.id).order('name');
+    const { data: cardsList } = await supabase.from('cards').select('*').eq('user_id', user.id).order('name');
+    const { data: budgetsList } = await supabase.from('budgets').select('*').eq('user_id', user.id);
+    const { data: transactionsList } = await supabase.from('transactions').select('*').eq('user_id', user.id).order('date', { ascending: false });
 
     setAccounts(accountsList || []);
     setCards(cardsList || []);
     setBudgets(budgetsList || []);
-    setTransactions(transactionsList || []);
+    
+    const formatted = (transactionsList || []).map(tx => ({
+      id: tx.id,
+      description: tx.description,
+      amount: Number(tx.amount),
+      date: tx.date,
+      category: tx.category,
+      accountId: tx.account_id,
+      cardId: tx.card_id,
+      type: tx.type,
+      status: tx.status
+    }));
+    setTransactions(formatted);
   };
 
-  // Ajustar saldos locais e em nuvem
+  // Ajustar saldos locais e em nuvem no espaço ativo
   const adjustAccountOrCardBalance = async (tx, isAdding, isRollback = false) => {
+    if (!activeSpaceUserId) return;
     const multiplier = (isAdding ? 1 : -1) * (isRollback ? -1 : 1);
     const diff = (tx.type === 'income' ? tx.amount : -tx.amount) * multiplier;
 
@@ -243,12 +372,12 @@ export const useFinanceData = () => {
     }
   };
 
-  // ADICIONAR TRANSAÇÃO
+  // ADICIONAR TRANSAÇÃO (salva no espaço ativo)
   const addTransaction = async (newTx) => {
-    if (!user) return;
+    if (!activeSpaceUserId) return;
 
     const txPayload = {
-      user_id: user.id,
+      user_id: activeSpaceUserId, // vincula ao dono do espaço
       description: newTx.description,
       amount: newTx.amount,
       date: newTx.date,
@@ -325,7 +454,6 @@ export const useFinanceData = () => {
     const { error } = await supabase.from('transactions').delete().eq('id', id);
     if (error) {
       console.error('Erro ao excluir transação:', error.message);
-      // Re-adicionar saldo se der erro
       await adjustAccountOrCardBalance(oldTx, true);
       return;
     }
@@ -336,9 +464,9 @@ export const useFinanceData = () => {
 
   // GERENCIAR CONTAS
   const addAccount = async (acc) => {
-    if (!user) return;
+    if (!activeSpaceUserId) return;
     const payload = {
-      user_id: user.id,
+      user_id: activeSpaceUserId,
       name: acc.name,
       balance: Number(acc.balance || 0),
       type: acc.type,
@@ -363,9 +491,9 @@ export const useFinanceData = () => {
 
   // GERENCIAR CARTÕES
   const addCard = async (card) => {
-    if (!user) return;
+    if (!activeSpaceUserId) return;
     const payload = {
-      user_id: user.id,
+      user_id: activeSpaceUserId,
       name: card.name,
       limit: Number(card.limit || 0),
       invoice: Number(card.invoice || 0),
@@ -399,9 +527,9 @@ export const useFinanceData = () => {
 
   // GERENCIAR ORÇAMENTOS
   const updateBudget = async (category, limit) => {
-    if (!user) return;
+    if (!activeSpaceUserId) return;
     const payload = {
-      user_id: user.id,
+      user_id: activeSpaceUserId,
       category,
       limit: Number(limit)
     };
@@ -422,11 +550,11 @@ export const useFinanceData = () => {
 
   // CONCILIAÇÃO OFX EM LOTE NO SUPABASE
   const importOfxTransactions = async (reconciledList, unmatchedList, accountId, cardId) => {
-    if (!user) return;
+    if (!activeSpaceUserId) return;
     
     // 1. Processar os novos (não conciliados)
     const newTxsPayload = unmatchedList.map(item => ({
-      user_id: user.id,
+      user_id: activeSpaceUserId,
       description: item.description,
       amount: item.amount,
       date: item.date,
@@ -495,6 +623,10 @@ export const useFinanceData = () => {
     transactions,
     theme,
     loading,
+    activeSpaceUserId,
+    activeSpaceOwnerEmail,
+    sharedSpaces,
+    mySharedUsers,
     toggleTheme,
     addTransaction,
     editTransaction,
@@ -505,5 +637,8 @@ export const useFinanceData = () => {
     editCard,
     updateBudget,
     importOfxTransactions,
+    inviteUser,
+    removeInvite,
+    switchSpace,
   };
 };

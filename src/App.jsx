@@ -25,6 +25,10 @@ function App() {
     transactions,
     theme,
     loading,
+    activeSpaceUserId,
+    activeSpaceOwnerEmail,
+    sharedSpaces,
+    mySharedUsers,
     toggleTheme,
     addTransaction,
     editTransaction,
@@ -35,6 +39,9 @@ function App() {
     editCard,
     updateBudget,
     importOfxTransactions,
+    inviteUser,
+    removeInvite,
+    switchSpace,
   } = useFinanceData();
 
   const [activePage, setActivePage] = useState('dashboard');
@@ -150,6 +157,9 @@ function App() {
             onDeleteTransaction={deleteTransaction}
             onViewAllTransactions={() => setActivePage('transactions')}
             onManageAccountsCards={() => setActivePage('accounts')}
+            mySharedUsers={mySharedUsers}
+            inviteUser={inviteUser}
+            removeInvite={removeInvite}
           />
         );
       case 'transactions':
@@ -204,6 +214,10 @@ function App() {
           toggleTheme={toggleTheme}
           onOpenImport={() => setIsOfxOpen(true)}
           onLogout={handleLogout}
+          user={user}
+          activeSpaceUserId={activeSpaceUserId}
+          sharedSpaces={sharedSpaces}
+          switchSpace={switchSpace}
         />
 
         <main className="main-content">
