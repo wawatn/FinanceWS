@@ -34,6 +34,7 @@ function App() {
     addTransaction,
     editTransaction,
     deleteTransaction,
+    toggleTransactionStatus,
     addAccount,
     editAccount,
     addCard,
