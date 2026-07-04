@@ -379,18 +379,23 @@ export const parseSmartInput = (text, accounts = [], cards = [], defaultAccountI
   // 2. Limpar valores numéricos gerais (ex: "5.650" ou "49,90")
   description = description.replace(/(?:r\$\s*)?\d+(?:[.,]\d+)?/gi, '');
   
-  // Limpar termos fixos e conectivos
-  description = description.replace(/\b(fixo|fixa|mensal|recorrente|assinatura)\b/gi, '');
-  description = description.replace(/\b(hoje|ontem|amanha|dia\s+\d{1,2}|nao pago|pendente|para pagar|a pagar|recebido|pago|confirmado)\b/gi, '');
-  description = description.replace(/\b(no|na|em|de|para|do|da|dos|das|nos|nas|reais|real|paguei|gastei|recebi|salario|ganhei|compras?|cartao|credito|dinheiro|carteira|nubank|itau|inter|banco|pagamento|pix|transferir|transferencia|enviar|com|um|uma|o|a|os|as|meu|minha|adiciona|adicionar|lanca|lancar|cadastra|cadastrar|inclui|incluir|registra|registrar|valor)\b/gi, '');
+  // 3. Filtrar termos e conectivos usando array para evitar bugs de limite de palavras (\b) com acentos (ex: "alimentação" -> "alimentaçã")
+  if (description.trim().length > 0) {
+    const stopWords = [
+      'no', 'na', 'em', 'de', 'para', 'do', 'da', 'dos', 'das', 'nos', 'nas', 
+      'reais', 'real', 'paguei', 'gastei', 'recebi', 'salario', 'ganhei', 'compra', 'compras', 
+      'cartao', 'credito', 'dinheiro', 'carteira', 'nubank', 'itau', 'inter', 'banco', 
+      'pagamento', 'pix', 'transferir', 'transferencia', 'enviar', 'com', 'um', 'uma', 
+      'o', 'a', 'os', 'as', 'meu', 'minha', 'adiciona', 'adicionar', 'lanca', 'lancar', 
+      'cadastra', 'cadastrar', 'inclui', 'incluir', 'registra', 'registrar', 'valor', 
+      'fixo', 'fixa', 'mensal', 'recorrente', 'assinatura', 'hoje', 'ontem', 'amanha', 
+      'dia', 'nao', 'pago', 'pendente', 'confirmado', 'recebido', 'pagar'
+    ];
 
-  description = description.replace(/\s+/g, ' ').trim();
-
-  // Filtro Dinâmico: Remover palavras que compõem nomes das contas/cartões ativos da descrição
-  if (description.length > 0) {
     const descWords = description.split(/\s+/);
-    const bannedWords = [];
     
+    // Lista de palavras banidas dos nomes de contas/cartões
+    const bannedWords = [];
     for (const acc of accounts) {
       const parts = acc.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').split(/\s+/);
       bannedWords.push(...parts);
@@ -400,11 +405,12 @@ export const parseSmartInput = (text, accounts = [], cards = [], defaultAccountI
       bannedWords.push(...parts);
     }
 
-    // Filtra palavras compostas
+    // Filtra as palavras
     const filteredWords = descWords.filter(word => {
-      const wordNorm = word.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-      // Ignora palavras banidas de bancos/contas
-      return !bannedWords.includes(wordNorm);
+      const wordNorm = word.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '');
+      if (!wordNorm) return false;
+      // Remove se for stop-word ou se for parte de nome de conta/cartão
+      return !stopWords.includes(wordNorm) && !bannedWords.includes(wordNorm);
     });
 
     description = filteredWords.join(' ').replace(/\s+/g, ' ').trim();
