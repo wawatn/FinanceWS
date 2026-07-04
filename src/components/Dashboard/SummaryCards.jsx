@@ -1,5 +1,4 @@
 import React from 'react';
-import { TrendingUp, TrendingDown, Wallet, CreditCard } from 'lucide-react';
 import { Card } from '../UI/Card';
 import { formatCurrency } from '../../utils/formatters';
 
@@ -29,68 +28,53 @@ export const SummaryCards = ({ accounts, cards, transactions }) => {
     .reduce((acc, curr) => acc + curr.amount, 0);
 
   return (
-    <Card className="col-12" style={{ padding: '1.25rem', marginBottom: '0.25rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-      {/* Saldo Principal */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <Card className="col-12" style={{ padding: '1.5rem', marginBottom: '0.25rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      {/* Saldo Geral e Faturas */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
-            Saldo Geral Disponível
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            Saldo em Contas
           </span>
-          <h2 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text)', marginTop: '0.15rem', letterSpacing: '-0.5px' }}>
+          <h2 style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--text)', marginTop: '0.2rem', letterSpacing: '-0.5px' }}>
             {formatCurrency(totalAccountsBalance)}
           </h2>
         </div>
-        <div 
-          style={{ 
-            backgroundColor: 'var(--primary-glow)', 
-            color: 'var(--primary)', 
-            padding: '0.6rem', 
-            borderRadius: '14px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
-        >
-          <Wallet size={22} />
+        <div style={{ textAlign: 'right' }}>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            Faturas de Cartão
+          </span>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--warning)', marginTop: '0.2rem' }}>
+            {formatCurrency(totalInvoices)}
+          </h3>
         </div>
       </div>
 
       <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: 0 }} />
 
-      {/* Grade de Sub-Resumos Otimizada (Flexível e Responsiva) */}
-      <div className="summary-grid-layout">
+      {/* Grid Simplificado Sem Bordas Internas (Receitas vs Despesas) */}
+      <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
         
         {/* Receitas */}
-        <div className="summary-grid-item">
-          <div className="summary-item-icon-wrapper" style={{ backgroundColor: 'var(--income-glow)', color: 'var(--income)' }}>
-            <TrendingUp size={16} />
-          </div>
-          <div>
-            <span className="summary-item-label">Receitas (Mês)</span>
-            <strong className="summary-item-value text-income">{formatCurrency(totalIncome)}</strong>
-          </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 500, display: 'block' }}>
+            Receitas do Mês
+          </span>
+          <strong className="text-income" style={{ fontSize: '1.15rem', fontWeight: 700, display: 'block', marginTop: '0.15rem' }}>
+            {formatCurrency(totalIncome)}
+          </strong>
         </div>
+
+        {/* Linha Divisora */}
+        <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--border)', flexShrink: 0 }} />
 
         {/* Despesas */}
-        <div className="summary-grid-item">
-          <div className="summary-item-icon-wrapper" style={{ backgroundColor: 'var(--expense-glow)', color: 'var(--expense)' }}>
-            <TrendingDown size={16} />
-          </div>
-          <div>
-            <span className="summary-item-label">Despesas (Mês)</span>
-            <strong className="summary-item-value text-expense">{formatCurrency(totalExpense)}</strong>
-          </div>
-        </div>
-
-        {/* Faturas de Cartão */}
-        <div className="summary-grid-item">
-          <div className="summary-item-icon-wrapper" style={{ backgroundColor: 'rgba(255, 179, 0, 0.1)', color: 'var(--warning)' }}>
-            <CreditCard size={16} />
-          </div>
-          <div>
-            <span className="summary-item-label">Faturas de Cartão</span>
-            <strong className="summary-item-value" style={{ color: 'var(--warning)' }}>{formatCurrency(totalInvoices)}</strong>
-          </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 500, display: 'block' }}>
+            Despesas do Mês
+          </span>
+          <strong className="text-expense" style={{ fontSize: '1.15rem', fontWeight: 700, display: 'block', marginTop: '0.15rem' }}>
+            {formatCurrency(totalExpense)}
+          </strong>
         </div>
 
       </div>

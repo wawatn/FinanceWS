@@ -46,11 +46,11 @@ export const Dashboard = ({
       </div>
 
       {/* Gráficos de Fluxo de Caixa e Categorias (Responsivo) */}
-      <div className={`chart-card-col ${activeChart === 'cashflow' ? 'active-mobile-chart' : 'hidden-mobile-chart'}`}>
+      <div className={`col-6 chart-card-col ${activeChart === 'cashflow' ? 'active-mobile-chart' : 'hidden-mobile-chart'}`}>
         <CashFlowSummary transactions={transactions} />
       </div>
       
-      <div className={`chart-card-col ${activeChart === 'category' ? 'active-mobile-chart' : 'hidden-mobile-chart'}`}>
+      <div className={`col-6 chart-card-col ${activeChart === 'category' ? 'active-mobile-chart' : 'hidden-mobile-chart'}`}>
         <CategoryChart transactions={transactions} />
       </div>
 

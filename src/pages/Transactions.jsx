@@ -43,6 +43,7 @@ export const Transactions = ({
   const [selectedCategory, setSelectedCategory] = useState('Todos');
   const [selectedSource, setSelectedSource] = useState('Todos'); // 'Todos', accountId, cardId
   const [selectedStatus, setSelectedStatus] = useState('Todos'); // 'Todos', 'confirmed', 'pending'
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   
   // Controle de Mês (Navegação de Meses)
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -151,77 +152,107 @@ export const Transactions = ({
         </div>
       </Card>
 
-      {/* Grid de Filtros e Busca */}
-      <Card style={{ padding: '1.25rem' }}>
-        <div 
+      {/* Grid de Filtros e Busca (Colapsável) */}
+      <Card style={{ padding: '0.75rem 1.25rem' }}>
+        <button 
+          type="button" 
+          onClick={() => setIsFiltersOpen(!isFiltersOpen)}
+          className="btn"
           style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', 
-            gap: '1rem' 
+            width: '100%', 
+            justifyContent: 'space-between', 
+            backgroundColor: 'transparent',
+            color: 'var(--text)', 
+            padding: '0.25rem 0',
+            fontSize: '0.9rem',
+            fontWeight: 600,
+            cursor: 'pointer'
           }}
         >
-          {/* Busca por Descrição */}
-          <div>
-            <label>Pesquisar lançamento</label>
-            <div style={{ position: 'relative' }}>
-              <Search size={16} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
-              <input 
-                type="text" 
-                placeholder="Ex: padaria, combustível..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                style={{ paddingLeft: '2.5rem' }}
-              />
+          <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Filter size={16} style={{ color: 'var(--primary)' }} />
+            Filtrar Lançamentos
+          </span>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+            {isFiltersOpen ? '▲ Fechar' : '▼ Abrir'}
+          </span>
+        </button>
+
+        {isFiltersOpen && (
+          <div 
+            style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', 
+              gap: '1rem',
+              marginTop: '1rem',
+              borderTop: '1px solid var(--border)',
+              paddingTop: '1rem',
+              animation: 'fadeIn 0.25s ease'
+            }}
+          >
+            {/* Busca por Descrição */}
+            <div>
+              <label>Pesquisar lançamento</label>
+              <div style={{ position: 'relative' }}>
+                <Search size={16} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+                <input 
+                  type="text" 
+                  placeholder="Ex: padaria, combustível..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  style={{ paddingLeft: '2.5rem' }}
+                />
+              </div>
+            </div>
+
+            {/* Filtro de Categoria */}
+            <div>
+              <label>Filtrar por Categoria</label>
+              <select 
+                value={selectedCategory} 
+                onChange={(e) => setSelectedCategory(e.target.value)}
+              >
+                {CATEGORIES.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Filtro de Conta / Cartão */}
+            <div>
+              <label>Filtrar por Conta/Cartão</label>
+              <select 
+                value={selectedSource} 
+                onChange={(e) => setSelectedSource(e.target.value)}
+              >
+                <option value="Todos">Todos</option>
+                <optgroup label="Contas">
+                  {accounts.map(acc => (
+                    <option key={acc.id} value={acc.id}>{acc.name}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="Cartões de Crédito">
+                  {cards.map(card => (
+                    <option key={card.id} value={`card-${card.id}`}>{card.name}</option>
+                  ))}
+                </optgroup>
+              </select>
+            </div>
+
+            {/* Filtro de Status */}
+            <div>
+              <label>Filtrar por Status</label>
+              <select 
+                value={selectedStatus} 
+                onChange={(e) => setSelectedStatus(e.target.value)}
+              >
+                <option value="Todos">Todos</option>
+                <option value="confirmed">Pagos / Recebidos</option>
+                <option value="pending">Pendentes (Não Pagos)</option>
+              </select>
             </div>
           </div>
-
-          {/* Filtro de Categoria */}
-          <div>
-            <label>Filtrar por Categoria</label>
-            <select 
-              value={selectedCategory} 
-              onChange={(e) => setSelectedCategory(e.target.value)}
-            >
-              {CATEGORIES.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Filtro de Conta / Cartão */}
-          <div>
-            <label>Filtrar por Conta/Cartão</label>
-            <select 
-              value={selectedSource} 
-              onChange={(e) => setSelectedSource(e.target.value)}
-            >
-              <option value="Todos">Todos</option>
-              <optgroup label="Contas">
-                {accounts.map(acc => (
-                  <option key={acc.id} value={acc.id}>{acc.name}</option>
-                ))}
-              </optgroup>
-              <optgroup label="Cartões de Crédito">
-                {cards.map(card => (
-                  <option key={card.id} value={`card-${card.id}`}>{card.name}</option>
-                ))}
-              </optgroup>
-            </select>
-          </div>
-
-          {/* Filtro de Status */}
-          <div>
-            <label>Filtrar por Status</label>
-            <select 
-              value={selectedStatus} 
-              onChange={(e) => setSelectedStatus(e.target.value)}
-            >
-              <option value="Todos">Todos</option>
-              <option value="confirmed">Pagos / Recebidos</option>
-              <option value="pending">Pendentes (Não Pagos)</option>
-            </select>
-          </div>
-        </div>
+        )}
       </Card>
 
       {/* Lista de Transações (Desktop vs Mobile) */}
