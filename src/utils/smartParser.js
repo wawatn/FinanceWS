@@ -191,49 +191,117 @@ export const parseSmartInput = (text, accounts = [], cards = [], defaultAccountI
   // B. REGULAR PARSER (HEURÍSTICAS DE FALA)
   // ==========================================
 
-  // 1. Extrair Valor (Amount)
+  // 1. Extrair Valor (Amount) com priorização e desempate por posição
   let amount = 0;
   let foundValue = false;
 
-  // Detectar padrão de fala: "cinco e noventa e nove" que transcreve como "5 e 99"
-  // Também detecta "cinco reais e noventa e nove" ou "5 reais e 99"
-  const spokenValueRegex = /(\d+)\s*(?:reais|real)?\s*e\s*(\d{1,2})\b/i;
-  const spokenMatch = normalized.match(spokenValueRegex);
-  if (spokenMatch) {
+  // a) Mapear índices de números que representam parcelas ou datas para excluí-los dos candidatos a valor
+  const excludedIndices = [];
+  
+  // Excluir números de parcelas (ex: "em 12 vezes", "12x", "12 parcelas")
+  const instFindRegex = /(?:parcelado|dividido)?\s*(?:em)?\s*(\d+)\s*(?:x|vezes|parcelas)\b/gi;
+  let instMatch;
+  while ((instMatch = instFindRegex.exec(normalized)) !== null) {
+    const numStr = instMatch[1];
+    const numIndex = instMatch.index + instMatch[0].indexOf(numStr);
+    excludedIndices.push({ start: numIndex, end: numIndex + numStr.length });
+  }
+
+  // Excluir números de data (ex: "dia 15", "dia 5")
+  const dateFindRegex = /\bdia\s+(\d{1,2})\b/gi;
+  let dateMatch;
+  while ((dateMatch = dateFindRegex.exec(normalized)) !== null) {
+    const numStr = dateMatch[1];
+    const numIndex = dateMatch.index + dateMatch[0].indexOf(numStr);
+    excludedIndices.push({ start: numIndex, end: numIndex + numStr.length });
+  }
+
+  // b) Tentar primeiro o padrão de centavos falados com "e" (ex: "5 e 99", "15 reais e 50")
+  const spokenFindRegex = /(\d+)\s*(?:reais|real)?\s*e\s*(\d{1,2})\b/gi;
+  let spokenMatch;
+  const spokenCandidates = [];
+  
+  while ((spokenMatch = spokenFindRegex.exec(normalized)) !== null) {
+    const start = spokenMatch.index;
+    const end = spokenMatch.index + spokenMatch[0].length;
+    
+    // Verifica se coincide com exclusões
+    const isExcluded = excludedIndices.some(exc => {
+      return (start >= exc.start && start <= exc.end) || (end >= exc.start && end <= exc.end);
+    });
+    if (isExcluded) continue;
+    
     const integers = spokenMatch[1];
     let cents = spokenMatch[2];
     if (cents.length === 1) {
       cents = '0' + cents; // "5 e 9" -> "5,09"
     }
-    amount = parseFloat(integers + '.' + cents);
+    const val = parseFloat(integers + '.' + cents);
+    if (!isNaN(val) && val > 0) {
+      spokenCandidates.push({
+        value: val,
+        index: start
+      });
+    }
+  }
+
+  if (spokenCandidates.length > 0) {
+    // Se houver mais de um, escolhe o último da frase
+    spokenCandidates.sort((a, b) => b.index - a.index);
+    amount = spokenCandidates[0].value;
     foundValue = true;
   }
 
+  // c) Se não achou centavos falados, coleta todos os candidatos numéricos gerais
   if (!foundValue) {
     const valueRegex = /(?:r\$\s*)?(\d+(?:[.,]\d+)?)/gi;
-    const matches = [...normalized.matchAll(valueRegex)];
+    let numMatch;
+    const candidates = [];
     
-    for (const match of matches) {
-      const val = parseRawValue(match[1]);
+    while ((numMatch = valueRegex.exec(normalized)) !== null) {
+      const matchedText = numMatch[0];
+      const numberStr = numMatch[1];
+      const start = numMatch.index;
+      const end = numMatch.index + matchedText.length;
       
-      if (!isNaN(val) && val > 0) {
-        const index = match.index;
-        const precedingText = normalized.substring(Math.max(0, index - 10), index);
-        const proceedingText = normalized.substring(index + match[0].length, index + match[0].length + 15);
-        
-        if (precedingText.includes('dia ') && !proceedingText.includes('real') && !proceedingText.includes('reais') && val <= 31) {
-          continue;
-        }
-        
-        const isInstallmentIndicator = proceedingText.match(/^\s*(?:x|vezes|parcelas)/i);
-        if (isInstallmentIndicator && val <= 48) {
-          continue; 
-        }
-        
-        amount = val;
-        foundValue = true;
-        break;
+      // Ignora índices excluídos (dia ou parcelas)
+      const isExcluded = excludedIndices.some(exc => {
+        return (start >= exc.start && start <= exc.end) || (end >= exc.start && end <= exc.end);
+      });
+      if (isExcluded) continue;
+      
+      const val = parseRawValue(numberStr);
+      if (isNaN(val) || val <= 0) continue;
+      
+      // Definir prioridades
+      let priority = 1;
+      
+      // Tem prefixo "r$" ou sufixo "real/reais"
+      const precedingText = normalized.substring(Math.max(0, start - 5), start);
+      const proceedingText = normalized.substring(end, Math.min(normalized.length, end + 10));
+      
+      if (precedingText.includes('r$') || proceedingText.match(/^\s*(?:reais|real)\b/i)) {
+        priority = 2;
       }
+      
+      candidates.push({
+        value: val,
+        index: start,
+        priority: priority
+      });
+    }
+
+    if (candidates.length > 0) {
+      // Ordena por Prioridade (alta primeiro) e depois por Posição (último na frase primeiro)
+      candidates.sort((a, b) => {
+        if (b.priority !== a.priority) {
+          return b.priority - a.priority;
+        }
+        return b.index - a.index; // Maior index = último na frase
+      });
+      
+      amount = candidates[0].value;
+      foundValue = true;
     }
   }
 
