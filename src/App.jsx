@@ -25,6 +25,7 @@ function App() {
     budgets,
     transactions,
     deletedTransactions,
+    defaultAccountId,
     theme,
     loading,
     activeSpaceUserId,
@@ -45,6 +46,7 @@ function App() {
     addCard,
     editCard,
     deleteCard,
+    changeDefaultAccount,
     updateBudget,
     importOfxTransactions,
     inviteUser,
@@ -200,6 +202,8 @@ function App() {
             onOpenAddModal={handleOpenAddAccCard}
             onDeleteAccount={deleteAccount}
             onDeleteCard={deleteCard}
+            defaultAccountId={defaultAccountId}
+            onSetDefaultAccount={changeDefaultAccount}
           />
         );
       case 'reports':
@@ -259,6 +263,7 @@ function App() {
         editingTransaction={editingTransaction}
         accounts={accounts}
         cards={cards}
+        defaultAccountId={defaultAccountId}
       />
 
       {/* Modal: Importação e Conciliação OFX */}

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Card } from '../components/UI/Card';
 import { formatCurrency } from '../utils/formatters';
-import { Wallet, CreditCard, Plus, Edit2, Calendar, ShieldCheck, Trash2 } from 'lucide-react';
+import { Wallet, CreditCard, Plus, Edit2, Calendar, ShieldCheck, Trash2, Star } from 'lucide-react';
 
 export const AccountsCards = ({ 
   accounts, 
@@ -12,6 +12,8 @@ export const AccountsCards = ({
   onEditCard,
   onDeleteAccount,
   onDeleteCard,
+  defaultAccountId,
+  onSetDefaultAccount,
   onOpenAddModal // Função para abrir o modal unificado
 }) => {
   const handleDeleteAccount = (id) => {
@@ -62,13 +64,45 @@ export const AccountsCards = ({
               
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingLeft: '0.5rem', marginBottom: '1rem' }}>
                 <div>
-                  <strong style={{ display: 'block', fontSize: '1rem' }}>{acc.name}</strong>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                    <strong style={{ fontSize: '1rem' }}>{acc.name}</strong>
+                    {acc.id === defaultAccountId && (
+                      <span style={{ 
+                        backgroundColor: 'rgba(255, 215, 0, 0.15)', 
+                        color: '#FFB300', 
+                        fontSize: '0.625rem', 
+                        padding: '0.08rem 0.35rem', 
+                        borderRadius: '6px', 
+                        fontWeight: 700,
+                        border: '1px solid rgba(255, 215, 0, 0.25)',
+                        letterSpacing: '0.3px',
+                        textTransform: 'uppercase'
+                      }}>
+                        Principal
+                      </span>
+                    )}
+                  </div>
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                     {acc.type === 'checking' ? 'Conta Corrente' : (acc.type === 'savings' ? 'Poupança' : 'Dinheiro em Espécie')}
                   </span>
                 </div>
                 
-                <div style={{ display: 'flex', gap: '0.25rem' }}>
+                <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+                  {/* Estrela de Conta Principal */}
+                  <button
+                    className="btn-icon"
+                    onClick={() => onSetDefaultAccount(acc.id)}
+                    style={{ 
+                      padding: '0.35rem', 
+                      color: acc.id === defaultAccountId ? '#FFD700' : 'var(--text-secondary)',
+                      backgroundColor: acc.id === defaultAccountId ? 'rgba(255, 215, 0, 0.1)' : 'transparent',
+                      borderRadius: '8px'
+                    }}
+                    title={acc.id === defaultAccountId ? "Conta Principal Ativa" : "Definir como Conta Principal"}
+                  >
+                    <Star size={14} fill={acc.id === defaultAccountId ? "#FFD700" : "none"} />
+                  </button>
+
                   <button 
                     className="btn-icon" 
                     onClick={() => onOpenAddModal('account', acc)}

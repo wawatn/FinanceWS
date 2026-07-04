@@ -16,7 +16,7 @@ const CATEGORIES = [
   'Outros'
 ];
 
-export const AddTransactionModal = ({ isOpen, onClose, onSave, editingTransaction, accounts, cards }) => {
+export const AddTransactionModal = ({ isOpen, onClose, onSave, editingTransaction, accounts, cards, defaultAccountId }) => {
   // Estados do Formulário
   const [type, setType] = useState('expense'); // 'expense', 'income' ou 'transfer'
   const [amount, setAmount] = useState('');
@@ -121,7 +121,8 @@ export const AddTransactionModal = ({ isOpen, onClose, onSave, editingTransactio
       setCategory('Alimentação');
       setStatus('confirmed');
       setPaymentType('account');
-      setAccountId(accounts.length > 0 ? accounts[0].id : '');
+      const hasDefault = defaultAccountId && accounts.some(a => a.id === defaultAccountId);
+      setAccountId(hasDefault ? defaultAccountId : (accounts.length > 0 ? accounts[0].id : ''));
       setCardId(cards.length > 0 ? cards[0].id : '');
       setDestinationAccountId(accounts.length > 1 ? accounts[1].id : '');
       setRecurrenceType('single');
@@ -190,7 +191,7 @@ export const AddTransactionModal = ({ isOpen, onClose, onSave, editingTransactio
   const handleProcessSmartText = (text) => {
     if (!text.trim()) return;
 
-    const parsed = parseSmartInput(text, accounts, cards);
+    const parsed = parseSmartInput(text, accounts, cards, defaultAccountId);
     if (parsed && parsed.amount > 0) {
       setAmount(
         parsed.amount 

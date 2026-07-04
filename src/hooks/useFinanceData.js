@@ -28,6 +28,7 @@ export const useFinanceData = () => {
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('mobills_theme') || 'dark';
   });
+  const [defaultAccountId, setDefaultAccountId] = useState('');
 
   // 1. Escutar a sessão de login do Supabase
   useEffect(() => {
@@ -67,6 +68,9 @@ export const useFinanceData = () => {
     if (user && activeSpaceUserId) {
       fetchUserData(false, activeSpaceUserId);
       fetchSharedConfiguration();
+
+      const stored = localStorage.getItem('mobills_default_account_id_' + activeSpaceUserId);
+      setDefaultAccountId(stored || '');
     }
   }, [user, activeSpaceUserId]);
 
@@ -762,9 +766,16 @@ export const useFinanceData = () => {
       return;
     }
 
-    // 3. Atualizar estados locais
+    // 3. Sincronizar estados locais
     setCards(prev => prev.filter(card => card.id !== cardId));
     setTransactions(prev => prev.filter(tx => tx.cardId !== cardId));
+  };
+
+  // DEFINIR CONTA PRINCIPAL PADRÃO
+  const changeDefaultAccount = (accountId) => {
+    if (!activeSpaceUserId) return;
+    localStorage.setItem('mobills_default_account_id_' + activeSpaceUserId, accountId);
+    setDefaultAccountId(accountId);
   };
 
   // GERENCIAR ORÇAMENTOS
@@ -867,6 +878,7 @@ export const useFinanceData = () => {
     budgets,
     transactions,
     deletedTransactions,
+    defaultAccountId,
     theme,
     loading,
     activeSpaceUserId,
@@ -887,6 +899,7 @@ export const useFinanceData = () => {
     addCard,
     editCard,
     deleteCard,
+    changeDefaultAccount,
     updateBudget,
     importOfxTransactions,
     inviteUser,

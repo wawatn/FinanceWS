@@ -1,6 +1,6 @@
 import { getTodayString, getYesterdayString } from './formatters';
 
-export const parseSmartInput = (text, accounts = [], cards = []) => {
+export const parseSmartInput = (text, accounts = [], cards = [], defaultAccountId = '') => {
   if (!text || text.trim() === '') return null;
 
   const normalized = text.toLowerCase()
@@ -124,7 +124,8 @@ export const parseSmartInput = (text, accounts = [], cards = []) => {
           if (isCredit && cards.length > 0) {
             selectedCard = cards[0].id;
           } else if (accounts.length > 0) {
-            selectedAccount = accounts[0].id;
+            const hasDefault = defaultAccountId && accounts.some(a => a.id === defaultAccountId);
+            selectedAccount = hasDefault ? defaultAccountId : accounts[0].id;
           }
         }
 
@@ -275,8 +276,9 @@ export const parseSmartInput = (text, accounts = [], cards = []) => {
       if (isCredit && cards.length > 0) {
         selectedCard = cards[0].id;
       } else if (accounts.length > 0) {
+        const hasDefault = defaultAccountId && accounts.some(a => a.id === defaultAccountId);
         const preferred = accounts.find(a => a.name.toLowerCase().includes('carteira') || a.name.toLowerCase().includes('corrente'));
-        selectedAccount = preferred ? preferred.id : accounts[0].id;
+        selectedAccount = hasDefault ? defaultAccountId : (preferred ? preferred.id : accounts[0].id);
       }
     }
   }
