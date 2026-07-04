@@ -22,15 +22,13 @@ export const parseSmartInput = (text, accounts = [], cards = []) => {
       const precedingText = normalized.substring(Math.max(0, index - 10), index);
       const proceedingText = normalized.substring(index + match[0].length, index + match[0].length + 15);
       
-      // Evitar pegar o dia do mês isolado (ex: "dia 15") ou parcelas (ex: "3x")
       if (precedingText.includes('dia ') && !proceedingText.includes('real') && !proceedingText.includes('reais') && val <= 31) {
         continue;
       }
       
-      // Checar se o número é parte de um indicador de parcelamento (ex: "3 x", "3 vezes")
       const isInstallmentIndicator = proceedingText.match(/^\s*(?:x|vezes|parcelas)/i);
       if (isInstallmentIndicator && val <= 48) {
-        continue; // Provavelmente é quantidade de parcelas, não o valor
+        continue; 
       }
       
       amount = val;
@@ -59,7 +57,6 @@ export const parseSmartInput = (text, accounts = [], cards = []) => {
     tomorrow.setDate(tomorrow.getDate() + 1);
     date = tomorrow.toISOString().split('T')[0];
   } else {
-    // Dia do mês (ex: "dia 15", "dia 8")
     const dayMatch = normalized.match(/dia\s+(\d{1,2})/i);
     if (dayMatch) {
       const day = parseInt(dayMatch[1]);
@@ -103,20 +100,16 @@ export const parseSmartInput = (text, accounts = [], cards = []) => {
 
   const isCredit = normalized.includes('cartao') || normalized.includes('credito') || normalized.includes('fatura');
 
-  // Função auxiliar para achar conta/cartão a partir de um fragmento de texto
   const findAccountOrCard = (searchTerm) => {
-    // 1. Procurar em cartões
     for (const card of cards) {
       const cardNorm = card.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
       if (searchTerm.includes(cardNorm)) return { id: card.id, isCard: true };
     }
-    // 2. Procurar em contas
     for (const acc of accounts) {
       const accNorm = acc.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
       if (searchTerm.includes(accNorm)) return { id: acc.id, isCard: false };
     }
 
-    // Atalhos comuns de bancos
     if (searchTerm.includes('nubank') || searchTerm.includes('nu')) {
       const card = cards.find(c => c.name.toLowerCase().includes('nubank'));
       const acc = accounts.find(a => a.name.toLowerCase().includes('nubank'));
@@ -140,7 +133,6 @@ export const parseSmartInput = (text, accounts = [], cards = []) => {
   };
 
   if (type === 'transfer') {
-    // Tenta extrair padrões do tipo: "transferir do nubank para o itau" ou "de carteira para nubank"
     const fromMatch = normalized.match(/(?:de|do|da)\s+(\w+)/i);
     const toMatch = normalized.match(/(?:para|para o|para a)\s+(\w+)/i);
 
@@ -153,7 +145,6 @@ export const parseSmartInput = (text, accounts = [], cards = []) => {
       if (res && !res.isCard) selectedDestinationAccount = res.id;
     }
 
-    // Fallbacks para transferência se não achou pelo regex estruturado, mas os nomes estão soltos
     if (!selectedAccount || !selectedDestinationAccount) {
       const foundAccounts = [];
       for (const acc of accounts) {
@@ -163,7 +154,6 @@ export const parseSmartInput = (text, accounts = [], cards = []) => {
         }
       }
       if (foundAccounts.length >= 2) {
-        // Assume que a primeira citada é origem, a segunda é destino
         const firstIndex = normalized.indexOf(accounts.find(a => a.id === foundAccounts[0]).name.toLowerCase());
         const secondIndex = normalized.indexOf(accounts.find(a => a.id === foundAccounts[1]).name.toLowerCase());
         if (firstIndex < secondIndex) {
@@ -176,14 +166,12 @@ export const parseSmartInput = (text, accounts = [], cards = []) => {
       }
     }
   } else {
-    // Despesa ou Receita comum: Achar apenas uma conta ou cartão
     const matched = findAccountOrCard(normalized);
     if (matched) {
       if (matched.isCard) selectedCard = matched.id;
       else selectedAccount = matched.id;
     }
 
-    // Fallbacks
     if (!selectedAccount && !selectedCard) {
       if (isCredit && cards.length > 0) {
         selectedCard = cards[0].id;
@@ -197,7 +185,6 @@ export const parseSmartInput = (text, accounts = [], cards = []) => {
   // 6. Extrair Quantidade de Parcelas (Installments)
   let isInstallment = false;
   let installmentCount = 1;
-  // Procura por "em 3x", "em 3 vezes", "parcelado em 5 parcelas", "dividido em 12 vezes", etc.
   const installmentRegex = /(?:parcelado|dividido)?\s*(?:em)?\s*(\d+)\s*(?:x|vezes|parcelas)/gi;
   const installmentMatch = installmentRegex.exec(normalized);
   if (installmentMatch) {
@@ -208,50 +195,49 @@ export const parseSmartInput = (text, accounts = [], cards = []) => {
     }
   }
 
-  // 7. Determinar Status (Pago vs Não Pago / Pendente)
-  let status = 'confirmed'; // Pago por padrão
+  // 7. Extrair Lançamento Fixo (Fixed Recurrence)
+  let isFixed = false;
+  const fixedKeywords = ['fixo', 'fixa', 'mensal', 'recorrente', 'assinatura'];
+  if (fixedKeywords.some(keyword => normalized.includes(keyword)) && type !== 'transfer') {
+    isFixed = true;
+  }
+
+  // 8. Determinar Status (Pago vs Não Pago / Pendente)
+  let status = 'confirmed'; 
   const pendingKeywords = ['nao pago', 'pendente', 'a pagar', 'para pagar', 'nao recebi', 'receber futura', 'planejada', 'agendada'];
   if (pendingKeywords.some(keyword => normalized.includes(keyword))) {
     status = 'pending';
   } else {
-    // Se a data for no futuro (comparada com hoje), marcar automaticamente como pendente
     const todayStr = getTodayString();
     if (date > todayStr) {
       status = 'pending';
     }
   }
 
-  // 8. Criar a Descrição (Description) limpa
+  // 9. Criar a Descrição (Description) limpa
   let description = text;
   
-  // Limpar valores monetários
   description = description.replace(/(?:r\$\s*)?\d+(?:[.,]\d{1,2})?/gi, '');
-  
-  // Limpar indicadores de parcelas
   description = description.replace(/\b\d+\s*(?:x|vezes|parcelas)\b/gi, '');
   description = description.replace(/\b(parcelado|dividido)\s*em\b/gi, '');
   
-  // Limpar palavras de tempo e status
+  // Limpar termos fixos
+  description = description.replace(/\b(fixo|fixa|mensal|recorrente|assinatura)\b/gi, '');
   description = description.replace(/\b(hoje|ontem|amanha|dia\s+\d{1,2}|nao pago|pendente|para pagar|a pagar|recebido|pago|confirmado)\b/gi, '');
-  
-  // Limpar nomes de bancos e palavras de transação
   description = description.replace(/\b(no|na|em|de|para|do|da|reais|real|paguei|gastei|recebi|salario|ganhei|compras?|cartao|credito|dinheiro|carteira|nubank|itau|inter|banco|pagamento|pix|transferir|transferencia|enviar)\b/gi, '');
 
-  // Limpar espaços extras
   description = description.replace(/\s+/g, ' ').trim();
   
-  // Fallback se a descrição ficou vazia
   if (description.length < 3) {
     const words = text.split(' ').filter(w => {
       const wNorm = w.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
       return w.length > 2 && 
              !wNorm.match(/^\d/) && 
-             !['reais', 'real', 'cartao', 'credito', 'dinheiro', 'hoje', 'ontem', 'amanha', 'nubank', 'itau', 'inter', 'paguei', 'gastei', 'recebi', 'transferir', 'transferencia'].includes(wNorm);
+             !['reais', 'real', 'cartao', 'credito', 'dinheiro', 'hoje', 'ontem', 'amanha', 'nubank', 'itau', 'inter', 'paguei', 'gastei', 'recebi', 'transferir', 'transferencia', 'fixo', 'fixa', 'mensal'].includes(wNorm);
     });
     description = words.length > 0 ? words.join(' ') : (type === 'income' ? 'Receita Extra' : (type === 'transfer' ? 'Transferência' : category));
   }
 
-  // Capitalizar primeira letra
   description = description.charAt(0).toUpperCase() + description.slice(1);
 
   return {
@@ -265,6 +251,7 @@ export const parseSmartInput = (text, accounts = [], cards = []) => {
     type,
     status,
     isInstallment,
-    installmentCount
+    installmentCount,
+    isFixed
   };
 };

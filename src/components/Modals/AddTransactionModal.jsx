@@ -29,8 +29,8 @@ export const AddTransactionModal = ({ isOpen, onClose, onSave, editingTransactio
   const [destinationAccountId, setDestinationAccountId] = useState('');
   const [status, setStatus] = useState('confirmed'); // 'confirmed' (pago) ou 'pending' (não pago)
 
-  // Estados de Parcelamento
-  const [isInstallment, setIsInstallment] = useState(false);
+  // Estados de Recorrência (Único, Parcelado ou Fixo)
+  const [recurrenceType, setRecurrenceType] = useState('single'); // 'single', 'installment' ou 'fixed'
   const [installmentCount, setInstallmentCount] = useState(2);
   const [installmentType, setInstallmentType] = useState('divide'); // 'divide' ou 'repeat'
 
@@ -104,7 +104,7 @@ export const AddTransactionModal = ({ isOpen, onClose, onSave, editingTransactio
         }
       }
 
-      setIsInstallment(false); // Ocultar opções de parcelamento na edição direta por segurança
+      setRecurrenceType(editingTransaction.isFixed ? 'fixed' : 'single');
       setSmartText('');
       setSmartError('');
     } else {
@@ -120,7 +120,7 @@ export const AddTransactionModal = ({ isOpen, onClose, onSave, editingTransactio
       setAccountId(accounts.length > 0 ? accounts[0].id : '');
       setCardId(cards.length > 0 ? cards[0].id : '');
       setDestinationAccountId(accounts.length > 1 ? accounts[1].id : '');
-      setIsInstallment(false);
+      setRecurrenceType('single');
       setInstallmentCount(2);
       setInstallmentType('divide');
       setSmartText('');
@@ -166,7 +166,7 @@ export const AddTransactionModal = ({ isOpen, onClose, onSave, editingTransactio
 
   if (!isOpen) return null;
 
-  // Lançamento por Voz (microfone)
+  // Gravação de Voz (microfone)
   const toggleListening = () => {
     if (!recognition) {
       setSmartError('Reconhecimento de voz não suportado neste navegador. Digite seu lançamento.');
@@ -209,12 +209,14 @@ export const AddTransactionModal = ({ isOpen, onClose, onSave, editingTransactio
           setCardId('');
         }
         
-        // Parcelamento
+        // Configurar Recorrência
         if (parsed.isInstallment) {
-          setIsInstallment(true);
+          setRecurrenceType('installment');
           setInstallmentCount(parsed.installmentCount);
+        } else if (parsed.isFixed) {
+          setRecurrenceType('fixed');
         } else {
-          setIsInstallment(false);
+          setRecurrenceType('single');
         }
       }
       setSmartError('');
@@ -250,9 +252,10 @@ export const AddTransactionModal = ({ isOpen, onClose, onSave, editingTransactio
       cardId: type === 'expense' && paymentType === 'card' ? cardId : null,
       destinationAccountId: type === 'transfer' ? destinationAccountId : null,
       status,
-      isInstallment: type !== 'transfer' ? isInstallment : false,
-      installmentCount: type !== 'transfer' && isInstallment ? parseInt(installmentCount) : 1,
-      installmentType: type !== 'transfer' && isInstallment ? installmentType : 'divide'
+      isInstallment: type !== 'transfer' && recurrenceType === 'installment',
+      installmentCount: type !== 'transfer' && recurrenceType === 'installment' ? parseInt(installmentCount) : 1,
+      installmentType: type !== 'transfer' && recurrenceType === 'installment' ? installmentType : 'divide',
+      isFixed: type !== 'transfer' && recurrenceType === 'fixed'
     };
 
     onSave(txData);
@@ -271,7 +274,7 @@ export const AddTransactionModal = ({ isOpen, onClose, onSave, editingTransactio
           </button>
         </div>
 
-        {/* 1. SEÇÃO INTELIGENTE (FALE OU DIGITE) NO TOPO DO MODAL */}
+        {/* 1. BARRA INTELIGENTE (FALE OU DIGITE) NO TOPO DO MODAL */}
         {!editingTransaction && (
           <div 
             style={{ 
@@ -283,33 +286,18 @@ export const AddTransactionModal = ({ isOpen, onClose, onSave, editingTransactio
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem' }}>
               <Sparkles size={14} className="text-income" />
               <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                Fale ou digite para preencher os campos abaixo
+                Escreva para autopreencher os campos abaixo
               </span>
             </div>
 
-            <form onSubmit={handleSmartSubmit} className="smart-input-container" style={{ padding: '0.25rem 0.5rem' }}>
-              <button 
-                type="button" 
-                onClick={toggleListening}
-                className={`btn-icon ${isListening ? 'pulse-red' : ''}`}
-                style={{ 
-                  backgroundColor: isListening ? 'var(--expense)' : 'var(--surface)', 
-                  color: isListening ? '#ffffff' : 'var(--primary)',
-                  borderRadius: '50%',
-                  width: '34px',
-                  height: '34px',
-                  transition: 'all 0.3s'
-                }}
-                title="Gravar por Voz"
-              >
-                {isListening ? <MicOff size={16} /> : <Mic size={16} />}
-              </button>
-
+            <form onSubmit={handleSmartSubmit} className="smart-input-container" style={{ padding: '0.25rem 1rem' }}>
+              <Sparkles size={16} style={{ color: 'var(--primary)' }} />
+              
               <input 
                 type="text" 
                 value={smartText}
                 onChange={(e) => setSmartText(e.target.value)}
-                placeholder={isListening ? "Escutando... Fale o valor, despesa e data" : "Diga: 'transferir 100 Nubank para Itau' ou 'mercado 300 reais em 3x'"}
+                placeholder="Ex: 'Streaming 49,90 no cartão Nubank fixo'"
                 className="smart-input-field"
                 disabled={isListening}
                 style={{ fontSize: '0.85rem', padding: '0.25rem 0' }}
@@ -640,7 +628,7 @@ export const AddTransactionModal = ({ isOpen, onClose, onSave, editingTransactio
               </label>
             </div>
 
-            {/* SEÇÃO: OPÇÕES DE PARCELAMENTO (Exclusivo para Receitas/Despesas não-transferências) */}
+            {/* SEÇÃO: RECORRÊNCIA E PARCELAMENTO (Toggles Único, Parcelado ou Fixo) */}
             {type !== 'transfer' && !editingTransaction && (
               <div 
                 style={{ 
@@ -652,21 +640,68 @@ export const AddTransactionModal = ({ isOpen, onClose, onSave, editingTransactio
                   gap: '0.75rem'
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <input
-                    type="checkbox"
-                    id="isInstallment"
-                    checked={isInstallment}
-                    onChange={(e) => setIsInstallment(e.target.checked)}
-                    style={{ width: 'auto', cursor: 'pointer' }}
-                  />
-                  <label htmlFor="isInstallment" style={{ fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', margin: 0 }}>
-                    Repetir ou parcelar este lançamento
-                  </label>
+                <label style={{ fontWeight: 600, fontSize: '0.85rem', margin: 0 }}>
+                  Recorrência do Lançamento
+                </label>
+
+                {/* Seletor de Tipo de Recorrência */}
+                <div style={{ display: 'flex', backgroundColor: 'var(--surface)', padding: '0.2rem', borderRadius: '10px', border: '1px solid var(--border)' }}>
+                  <button
+                    type="button"
+                    className="btn"
+                    style={{
+                      flex: 1,
+                      justifyContent: 'center',
+                      fontSize: '0.75rem',
+                      padding: '0.35rem 0.5rem',
+                      borderRadius: '8px',
+                      backgroundColor: recurrenceType === 'single' ? 'var(--surface-secondary)' : 'transparent',
+                      color: recurrenceType === 'single' ? 'var(--text)' : 'var(--text-secondary)',
+                      boxShadow: recurrenceType === 'single' ? '0 2px 5px rgba(0,0,0,0.15)' : 'none'
+                    }}
+                    onClick={() => setRecurrenceType('single')}
+                  >
+                    Único
+                  </button>
+                  <button
+                    type="button"
+                    className="btn"
+                    style={{
+                      flex: 1,
+                      justifyContent: 'center',
+                      fontSize: '0.75rem',
+                      padding: '0.35rem 0.5rem',
+                      borderRadius: '8px',
+                      backgroundColor: recurrenceType === 'installment' ? 'var(--surface-secondary)' : 'transparent',
+                      color: recurrenceType === 'installment' ? 'var(--text)' : 'var(--text-secondary)',
+                      boxShadow: recurrenceType === 'installment' ? '0 2px 5px rgba(0,0,0,0.15)' : 'none'
+                    }}
+                    onClick={() => setRecurrenceType('installment')}
+                  >
+                    Parcelado
+                  </button>
+                  <button
+                    type="button"
+                    className="btn"
+                    style={{
+                      flex: 1,
+                      justifyContent: 'center',
+                      fontSize: '0.75rem',
+                      padding: '0.35rem 0.5rem',
+                      borderRadius: '8px',
+                      backgroundColor: recurrenceType === 'fixed' ? 'var(--surface-secondary)' : 'transparent',
+                      color: recurrenceType === 'fixed' ? 'var(--text)' : 'var(--text-secondary)',
+                      boxShadow: recurrenceType === 'fixed' ? '0 2px 5px rgba(0,0,0,0.15)' : 'none'
+                    }}
+                    onClick={() => setRecurrenceType('fixed')}
+                  >
+                    Fixo Mensal
+                  </button>
                 </div>
 
-                {isInstallment && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', animation: 'fadeIn 0.2s' }}>
+                {/* Opções específicas para Parcelado */}
+                {recurrenceType === 'installment' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.25rem', animation: 'fadeIn 0.2s' }}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '0.75rem', alignItems: 'center' }}>
                       <div>
                         <label style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>Nº de Parcelas</label>
@@ -705,18 +740,56 @@ export const AddTransactionModal = ({ isOpen, onClose, onSave, editingTransactio
                     )}
                   </div>
                 )}
+
+                {/* Confirmação para Fixo Mensal */}
+                {recurrenceType === 'fixed' && (
+                  <div style={{ padding: '0.25rem 0', animation: 'fadeIn 0.2s' }}>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', lineHeight: 1.4 }}>
+                      Este lançamento se repetirá mensalmente pelos próximos **12 meses**. O primeiro mês será criado com o status selecionado acima, e os 11 meses futuros serão agendados como **Pendentes** (Não Pagos).
+                    </span>
+                  </div>
+                )}
+
               </div>
             )}
 
           </div>
 
-          <div className="modal-footer" style={{ padding: '1rem 1.5rem' }}>
-            <button type="button" className="btn btn-secondary" onClick={onClose}>
+          {/* RODAPÉ ERGONÔMICO COM MICROFONE CENTRALIZADO */}
+          <div className="modal-footer" style={{ padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <button type="button" className="btn btn-secondary" onClick={onClose} style={{ flex: 1, minHeight: '44px', justifyContent: 'center' }}>
               Cancelar
             </button>
-            <button type="submit" className="btn btn-primary">
+
+            {/* Microfone no Centro */}
+            {!editingTransaction && (
+              <button 
+                type="button" 
+                onClick={toggleListening}
+                className={`btn-icon ${isListening ? 'pulse-red' : ''}`}
+                style={{ 
+                  backgroundColor: isListening ? 'var(--expense)' : 'var(--surface-secondary)', 
+                  color: isListening ? '#ffffff' : 'var(--primary)',
+                  borderRadius: '50%',
+                  width: '46px',
+                  height: '46px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '1px solid var(--border)',
+                  boxShadow: '0 4px 10px rgba(0, 0, 0, 0.2)',
+                  transition: 'all 0.3s',
+                  margin: '0 1rem'
+                }}
+                title="Gravar Lançamento por Voz"
+              >
+                {isListening ? <MicOff size={20} /> : <Mic size={20} />}
+              </button>
+            )}
+
+            <button type="submit" className="btn btn-primary" style={{ flex: 1, minHeight: '44px', justifyContent: 'center' }}>
               <Check size={18} />
-              {editingTransaction ? 'Salvar Edição' : (isInstallment ? 'Lançar Parcelas' : 'Salvar Lançamento')}
+              {editingTransaction ? 'Salvar Edição' : (recurrenceType === 'installment' ? 'Lançar Parcelas' : (recurrenceType === 'fixed' ? 'Lançar Fixo' : 'Salvar'))}
             </button>
           </div>
         </form>

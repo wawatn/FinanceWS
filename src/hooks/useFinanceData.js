@@ -372,6 +372,58 @@ export const useFinanceData = () => {
         await adjustAccountOrCardBalance(tx, true);
       }
 
+    } else if (newTx.isFixed) {
+      // Criar 12 lançamentos recorrentes (mensais)
+      const txsToInsert = [];
+      for (let i = 1; i <= 12; i++) {
+        const baseDate = new Date(newTx.date + 'T00:00:00');
+        baseDate.setMonth(baseDate.getMonth() + (i - 1));
+        const fixedDate = baseDate.toISOString().split('T')[0];
+
+        // A primeira ocorrência fica com o status escolhido, as outras 11 ficam como pendente
+        const fixedStatus = i === 1 ? newTx.status : 'pending';
+
+        txsToInsert.push({
+          user_id: activeSpaceUserId,
+          description: newTx.description,
+          amount: newTx.amount,
+          date: fixedDate,
+          category: newTx.category,
+          account_id: newTx.accountId || null,
+          card_id: newTx.cardId || null,
+          destination_account_id: newTx.destinationAccountId || null,
+          type: newTx.type,
+          status: fixedStatus,
+          is_fixed: true
+        });
+      }
+
+      const { data, error } = await supabase.from('transactions').insert(txsToInsert).select();
+      if (error) {
+        console.error('Erro ao adicionar transações fixas:', error.message);
+        return;
+      }
+
+      const formattedInserted = data.map(item => ({
+        id: item.id,
+        description: item.description,
+        amount: Number(item.amount),
+        date: item.date,
+        category: item.category,
+        accountId: item.account_id,
+        cardId: item.card_id,
+        destinationAccountId: item.destination_account_id,
+        type: item.type,
+        status: item.status,
+        isFixed: item.is_fixed
+      }));
+
+      setTransactions(prev => [...formattedInserted, ...prev]);
+
+      for (const tx of formattedInserted) {
+        await adjustAccountOrCardBalance(tx, true);
+      }
+
     } else {
       // Lançamento normal de única parcela ou transferência
       const txPayload = {
@@ -385,6 +437,7 @@ export const useFinanceData = () => {
         destination_account_id: newTx.destinationAccountId || null,
         type: newTx.type,
         status: newTx.status || 'confirmed',
+        is_fixed: newTx.isFixed || false
       };
 
       const { data, error } = await supabase.from('transactions').insert([txPayload]).select();
@@ -406,7 +459,8 @@ export const useFinanceData = () => {
         type: data[0].type,
         status: data[0].status,
         installmentNumber: data[0].installment_number,
-        totalInstallments: data[0].total_installments
+        totalInstallments: data[0].total_installments,
+        isFixed: data[0].is_fixed
       };
 
       setTransactions(prev => [insertedTx, ...prev]);
