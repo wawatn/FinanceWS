@@ -136,7 +136,7 @@ export const Transactions = ({
             <button className="btn btn-secondary btn-icon" onClick={handlePrevMonth} style={{ borderRadius: '50%', minHeight: '36px', width: '36px' }}>
               <ArrowLeft size={16} />
             </button>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, minWidth: '180px', textAlign: 'center' }}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, minWidth: '160px', textAlign: 'center' }}>
               {getMonthYearString()}
             </h3>
             <button className="btn btn-secondary btn-icon" onClick={handleNextMonth} style={{ borderRadius: '50%', minHeight: '36px', width: '36px' }}>
@@ -224,124 +224,218 @@ export const Transactions = ({
         </div>
       </Card>
 
-      {/* Lista de Transações */}
-      <Card style={{ padding: '0' }}>
-        <div className="table-responsive">
-          <table>
-            <thead>
-              <tr>
-                <th style={{ width: '40px' }}>Status</th>
-                <th>Descrição</th>
-                <th>Categoria</th>
-                <th>Origem/Destino</th>
-                <th>Data</th>
-                <th>Valor</th>
-                <th style={{ textAlign: 'center' }}>Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredTransactions.length > 0 ? (
-                filteredTransactions.map((tx) => {
-                  const isIncome = tx.type === 'income';
-                  const isTransfer = tx.type === 'transfer';
-                  return (
-                    <tr 
-                      key={tx.id}
-                      style={{ 
-                        opacity: tx.status === 'pending' ? 0.85 : 1,
-                        backgroundColor: tx.status === 'pending' ? 'rgba(255, 255, 255, 0.01)' : 'transparent'
+      {/* Lista de Transações (Desktop vs Mobile) */}
+      <div className="transactions-list-container">
+        
+        {/* VERSÃO DESKTOP: TABELA CLÁSSICA (Oculta no Mobile) */}
+        <Card className="desktop-only-table-card" style={{ padding: '0' }}>
+          <div className="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th style={{ width: '40px' }}>Status</th>
+                  <th>Descrição</th>
+                  <th>Categoria</th>
+                  <th>Origem/Destino</th>
+                  <th>Data</th>
+                  <th>Valor</th>
+                  <th style={{ textAlign: 'center' }}>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredTransactions.length > 0 ? (
+                  filteredTransactions.map((tx) => {
+                    const isIncome = tx.type === 'income';
+                    const isTransfer = tx.type === 'transfer';
+                    return (
+                      <tr 
+                        key={tx.id}
+                        style={{ 
+                          opacity: tx.status === 'pending' ? 0.85 : 1,
+                          backgroundColor: tx.status === 'pending' ? 'rgba(255, 255, 255, 0.01)' : 'transparent'
+                        }}
+                      >
+                        <td>
+                          <button
+                            onClick={() => onToggleStatus(tx.id)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              padding: '0.25rem',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: tx.status === 'confirmed' 
+                                ? (isIncome ? 'var(--income)' : (isTransfer ? 'var(--primary)' : 'var(--primary)'))
+                                : 'var(--text-secondary)'
+                            }}
+                            title={tx.status === 'confirmed' ? 'Confirmado' : 'Pendente'}
+                          >
+                            {tx.status === 'confirmed' ? <CheckCircle size={18} /> : <Circle size={18} />}
+                          </button>
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <strong style={{ fontSize: '0.9rem', color: tx.status === 'pending' ? 'var(--text-secondary)' : 'var(--text)' }}>
+                              {tx.description}
+                              {tx.installmentNumber && (
+                                <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginLeft: '0.4rem', backgroundColor: 'var(--surface-secondary)', padding: '0.1rem 0.35rem', borderRadius: '4px', border: '1px solid var(--border)' }}>
+                                  {tx.installmentNumber}/{tx.totalInstallments}
+                                </span>
+                              )}
+                            </strong>
+                          </div>
+                        </td>
+                        <td>
+                          {isTransfer ? (
+                            <span className="badge" style={{ backgroundColor: 'rgba(var(--primary-rgb), 0.1)', color: 'var(--primary)' }}>Transferência</span>
+                          ) : (
+                            <span className={`badge ${isIncome ? 'badge-income' : 'badge-expense'}`}>
+                              {tx.category}
+                            </span>
+                          )}
+                        </td>
+                        <td>
+                          <span style={{ fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-secondary)' }}>
+                            {getDestinationLabel(tx)}
+                          </span>
+                        </td>
+                        <td>
+                          <span style={{ fontSize: '0.85rem' }}>{formatDate(tx.date)}</span>
+                        </td>
+                        <td>
+                          <strong className={isTransfer ? '' : (isIncome ? 'text-income' : 'text-expense')} style={{ fontSize: '0.9rem', color: isTransfer ? 'var(--text)' : undefined }}>
+                            {isTransfer ? '⇅' : (isIncome ? '+' : '-')} {formatCurrency(tx.amount)}
+                          </strong>
+                        </td>
+                        <td style={{ textAlign: 'center' }}>
+                          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                            <button 
+                              className="btn-icon" 
+                              onClick={() => onEditClick(tx)}
+                              title="Editar"
+                            >
+                              <Edit size={14} />
+                            </button>
+                            <button 
+                              className="btn-icon" 
+                              style={{ color: 'var(--expense)' }}
+                              onClick={() => onDeleteClick(tx.id)}
+                              title="Excluir"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan="7" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                      Nenhum lançamento encontrado para os filtros selecionados neste mês.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+
+        {/* VERSÃO MOBILE: LISTA DE ITENS FLEX (Visível apenas no Celular) */}
+        <div className="mobile-only-transactions-list">
+          {filteredTransactions.length > 0 ? (
+            filteredTransactions.map((tx) => {
+              const isIncome = tx.type === 'income';
+              const isTransfer = tx.type === 'transfer';
+              return (
+                <div 
+                  key={tx.id}
+                  className="mobile-tx-item"
+                  style={{ 
+                    opacity: tx.status === 'pending' ? 0.8 : 1,
+                    borderLeft: `5px solid ${isTransfer ? 'var(--primary)' : (isIncome ? 'var(--income)' : 'var(--expense)')}`
+                  }}
+                >
+                  {/* Esquerda: Checkbox + Detalhes */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: 0 }}>
+                    <button
+                      onClick={() => onToggleStatus(tx.id)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        padding: 0,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: tx.status === 'confirmed' 
+                          ? (isIncome ? 'var(--income)' : (isTransfer ? 'var(--primary)' : 'var(--primary)'))
+                          : 'var(--text-secondary)'
                       }}
                     >
-                      <td>
-                        <button
-                          onClick={() => onToggleStatus(tx.id)}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            padding: '0.25rem',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: tx.status === 'confirmed' 
-                              ? (isIncome ? 'var(--income)' : (isTransfer ? 'var(--primary)' : 'var(--primary)'))
-                              : 'var(--text-secondary)'
-                          }}
-                          title={tx.status === 'confirmed' ? 'Confirmado (Clique para marcar como Pendente)' : 'Pendente (Clique para confirmar)'}
-                        >
-                          {tx.status === 'confirmed' ? <CheckCircle size={18} /> : <Circle size={18} />}
-                        </button>
-                      </td>
-                      <td>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                          <strong style={{ fontSize: '0.9rem', color: tx.status === 'pending' ? 'var(--text-secondary)' : 'var(--text)' }}>
-                            {tx.description}
-                            {tx.installmentNumber && (
-                              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginLeft: '0.4rem', backgroundColor: 'var(--surface-secondary)', padding: '0.1rem 0.35rem', borderRadius: '4px', border: '1px solid var(--border)' }}>
-                                {tx.installmentNumber}/{tx.totalInstallments}
-                              </span>
-                            )}
-                          </strong>
-                          {tx.status === 'pending' && (
-                            <span style={{ fontSize: '0.7rem', color: 'var(--expense)', fontWeight: 600 }}>Pendente</span>
-                          )}
-                        </div>
-                      </td>
-                      <td>
-                        {isTransfer ? (
-                          <span className="badge" style={{ backgroundColor: 'rgba(var(--primary-rgb), 0.1)', color: 'var(--primary)' }}>Transferência</span>
-                        ) : (
-                          <span className={`badge ${isIncome ? 'badge-income' : 'badge-expense'}`}>
-                            {tx.category}
+                      {tx.status === 'confirmed' ? <CheckCircle size={20} /> : <Circle size={20} />}
+                    </button>
+
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <strong style={{ 
+                        display: 'block', 
+                        fontSize: '0.9rem', 
+                        color: tx.status === 'pending' ? 'var(--text-secondary)' : 'var(--text)',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}>
+                        {tx.description}
+                        {tx.installmentNumber && (
+                          <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', marginLeft: '0.4rem', backgroundColor: 'var(--surface-secondary)', padding: '0.1rem 0.35rem', borderRadius: '4px', border: '1px solid var(--border)' }}>
+                            {tx.installmentNumber}/{tx.totalInstallments}
                           </span>
                         )}
-                      </td>
-                      <td>
-                        <span style={{ fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-secondary)' }}>
-                          {getDestinationLabel(tx)}
-                        </span>
-                      </td>
-                      <td>
-                        <span style={{ fontSize: '0.85rem' }}>{formatDate(tx.date)}</span>
-                      </td>
-                      <td>
-                        <strong className={isTransfer ? '' : (isIncome ? 'text-income' : 'text-expense')} style={{ fontSize: '0.9rem', color: isTransfer ? 'var(--text)' : undefined }}>
-                          {isTransfer ? '⇅' : (isIncome ? '+' : '-')} {formatCurrency(tx.amount)}
-                        </strong>
-                      </td>
-                      <td style={{ textAlign: 'center' }}>
-                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                          <button 
-                            className="btn-icon" 
-                            onClick={() => onEditClick(tx)}
-                            title="Editar"
-                          >
-                            <Edit size={14} />
-                          </button>
-                          <button 
-                            className="btn-icon" 
-                            style={{ color: 'var(--expense)' }}
-                            onClick={() => onDeleteClick(tx.id)}
-                            title="Excluir"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan="7" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                    Nenhum lançamento encontrado para os filtros selecionados neste mês.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                      </strong>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginTop: '0.15rem' }}>
+                        {formatDate(tx.date)} • {isTransfer ? 'Transferência' : tx.category} • {getDestinationLabel(tx).replace(/^[💳🏦\s]+/, '')}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Direita: Valor e Ações */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'end', gap: '0.35rem', marginLeft: '0.5rem' }}>
+                    <strong className={isTransfer ? '' : (isIncome ? 'text-income' : 'text-expense')} style={{ fontSize: '0.95rem', color: isTransfer ? 'var(--text)' : undefined }}>
+                      {isTransfer ? '⇅' : (isIncome ? '+' : '-')} {formatCurrency(tx.amount)}
+                    </strong>
+
+                    <div style={{ display: 'flex', gap: '0.25rem' }}>
+                      <button 
+                        className="btn-icon" 
+                        onClick={() => onEditClick(tx)}
+                        style={{ padding: '0.25rem', borderRadius: '6px' }}
+                        title="Editar"
+                      >
+                        <Edit size={13} />
+                      </button>
+                      <button 
+                        className="btn-icon" 
+                        style={{ color: 'var(--expense)', padding: '0.25rem', borderRadius: '6px' }}
+                        onClick={() => onDeleteClick(tx.id)}
+                        title="Excluir"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)', fontSize: '0.9rem', backgroundColor: 'var(--surface-secondary)', borderRadius: '16px', border: '1px solid var(--border)' }}>
+              Nenhum lançamento encontrado para os filtros selecionados neste mês.
+            </div>
+          )}
         </div>
-      </Card>
+
+      </div>
     </div>
   );
 };

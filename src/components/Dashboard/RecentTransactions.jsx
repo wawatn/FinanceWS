@@ -80,7 +80,7 @@ export const RecentTransactions = ({
                   transition: 'all 0.2s'
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flex: 1, minWidth: 0 }}>
                   
                   {/* Interruptor Rápido de Status (Pago vs Pendente) */}
                   <button
@@ -111,18 +111,22 @@ export const RecentTransactions = ({
                       color: isTransfer ? 'var(--primary)' : (isIncome ? 'var(--income)' : 'var(--expense)'),
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center'
+                      justifyContent: 'center',
+                      flexShrink: 0
                     }}
                   >
                     {getIcon(tx.category, tx.type)}
                   </div>
                   
-                  <div>
+                  <div style={{ minWidth: 0, flex: 1 }}>
                     <strong style={{ 
                       display: 'block', 
                       fontSize: '0.9rem', 
                       color: tx.status === 'pending' ? 'var(--text-secondary)' : 'var(--text)',
-                      textDecoration: tx.status === 'pending' ? 'none' : 'none'
+                      textDecoration: tx.status === 'pending' ? 'none' : 'none',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
                     }}>
                       {tx.description}
                       {tx.installmentNumber && (

@@ -706,3 +706,137 @@ tr:hover td {
     padding-top: 1.5rem;
   }
 }
+
+/* ==========================================
+   Estilos Responsivos Otimizados (Painel/Extrato)
+   ========================================== */
+
+/* Resumo Geral do Dashboard (Grid) */
+.summary-grid-layout {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  width: 100%;
+}
+
+.summary-grid-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-radius: 16px;
+  background-color: var(--surface-secondary);
+  border: 1px solid var(--border);
+}
+
+.summary-item-icon-wrapper {
+  padding: 0.5rem;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.summary-item-label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.summary-item-value {
+  display: block;
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-top: 0.15rem;
+}
+
+/* Gráficos em Abas no Mobile */
+.mobile-chart-tabs-container {
+  display: none; /* Ocultado por padrão no Desktop */
+}
+
+/* Lista de Transações Mobile vs Tabela Desktop */
+.mobile-only-transactions-list {
+  display: none; /* Ocultado por padrão no Desktop */
+}
+
+.desktop-only-table-card {
+  display: block;
+}
+
+/* Regras CSS Responsivas de Celular */
+@media (max-width: 768px) {
+  /* Resumos */
+  .summary-grid-layout {
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+  }
+  
+  .summary-grid-item {
+    padding: 0.65rem 0.85rem;
+  }
+
+  /* Abas de Gráficos no Celular */
+  .mobile-chart-tabs-container {
+    display: flex;
+    background-color: var(--surface-secondary);
+    padding: 0.2rem;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    margin-bottom: 0.75rem;
+    width: 100%;
+  }
+
+  .chart-tab-btn {
+    flex: 1;
+    font-size: 0.8rem;
+    padding: 0.5rem;
+    border-radius: 10px;
+    background-color: transparent;
+    color: var(--text-secondary);
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+
+  .chart-tab-btn.active {
+    background-color: var(--surface);
+    color: var(--text);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+  }
+
+  /* Visibilidade dos Gráficos */
+  .chart-card-col.hidden-mobile-chart {
+    display: none !important;
+  }
+
+  .chart-card-col.active-mobile-chart {
+    display: block !important;
+  }
+
+  /* Extrato / Lançamentos (Fim do Scroll Horizontal) */
+  .desktop-only-table-card {
+    display: none !important;
+  }
+
+  .mobile-only-transactions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 100%;
+  }
+
+  .mobile-tx-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.9rem 1rem;
+    border-radius: 18px;
+    background-color: var(--surface-secondary);
+    border: 1px solid var(--border);
+    transition: background-color 0.2s;
+  }
+}
+
