@@ -1,5 +1,43 @@
 import { getTodayString, getYesterdayString } from './formatters';
 
+// Função para tratar e converter valores falados ou colados contendo separadores (ex: "5.650" -> 5650.00, "1.250,50" -> 1250.50)
+const parseRawValue = (str) => {
+  if (!str) return 0;
+  
+  // Se tiver tanto ponto quanto vírgula (ex: "1.250,50" ou "1,250.50")
+  if (str.includes('.') && str.includes(',')) {
+    const lastDot = str.lastIndexOf('.');
+    const lastComma = str.lastIndexOf(',');
+    if (lastComma > lastDot) {
+      // Ponto é milhar, vírgula é decimal -> "1.250,50"
+      return parseFloat(str.replace(/\./g, '').replace(',', '.')) || 0;
+    } else {
+      // Vírgula é milhar, ponto é decimal -> "1,250.50"
+      return parseFloat(str.replace(/,/g, '').replace(/\./g, '.')) || 0;
+    }
+  }
+  
+  // Se tiver apenas vírgula
+  if (str.includes(',')) {
+    const parts = str.split(',');
+    if (parts[1] && parts[1].length === 3) {
+      return parseFloat(str.replace(',', '')) || 0; // "5,650" (milhar)
+    }
+    return parseFloat(str.replace(',', '.')) || 0; // "50,50" (decimal)
+  }
+  
+  // Se tiver apenas ponto
+  if (str.includes('.')) {
+    const parts = str.split('.');
+    if (parts[1] && parts[1].length === 3) {
+      return parseFloat(str.replace(/\./g, '')) || 0; // "5.650" (milhar)
+    }
+    return parseFloat(str) || 0; // "50.5" (decimal)
+  }
+  
+  return parseFloat(str) || 0;
+};
+
 export const parseSmartInput = (text, accounts = [], cards = [], defaultAccountId = '') => {
   if (!text || text.trim() === '') return null;
 
@@ -172,12 +210,11 @@ export const parseSmartInput = (text, accounts = [], cards = [], defaultAccountI
   }
 
   if (!foundValue) {
-    const valueRegex = /(?:r\$\s*)?(\d+(?:[.,]\d{1,2})?)/gi;
+    const valueRegex = /(?:r\$\s*)?(\d+(?:[.,]\d+)?)/gi;
     const matches = [...normalized.matchAll(valueRegex)];
     
     for (const match of matches) {
-      const valStr = match[1].replace(',', '.');
-      const val = parseFloat(valStr);
+      const val = parseRawValue(match[1]);
       
       if (!isNaN(val) && val > 0) {
         const index = match.index;
@@ -335,9 +372,12 @@ export const parseSmartInput = (text, accounts = [], cards = [], defaultAccountI
   // 9. Criar a Descrição (Description) limpa
   let description = text;
   
-  description = description.replace(/(?:r\$\s*)?\d+(?:[.,]\d{1,2})?/gi, '');
+  // 1. Limpar parcelas primeiro (ex: "12 vezes" -> "" em vez de remover "12" primeiro e sobrar "vezes")
   description = description.replace(/\b\d+\s*(?:x|vezes|parcelas)\b/gi, '');
   description = description.replace(/\b(parcelado|dividido)\s*em\b/gi, '');
+
+  // 2. Limpar valores numéricos gerais (ex: "5.650" ou "49,90")
+  description = description.replace(/(?:r\$\s*)?\d+(?:[.,]\d+)?/gi, '');
   
   // Limpar termos fixos e conectivos
   description = description.replace(/\b(fixo|fixa|mensal|recorrente|assinatura)\b/gi, '');
