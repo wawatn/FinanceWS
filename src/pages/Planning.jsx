@@ -40,11 +40,31 @@ export const Planning = ({ budgets, transactions, onUpdateBudget }) => {
 
   const handleEditClick = (category, currentLimit) => {
     setEditingCategory(category);
-    setTempLimit(String(currentLimit));
+    setTempLimit(
+      currentLimit 
+        ? new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(currentLimit)
+        : ''
+    );
+  };
+
+  const handleLimitChange = (e) => {
+    const rawValue = e.target.value;
+    const digits = rawValue.replace(/\D/g, '');
+    if (!digits) {
+      setTempLimit('');
+      return;
+    }
+    const numericValue = parseFloat(digits) / 100;
+    const formatted = new Intl.NumberFormat('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(numericValue);
+    setTempLimit(formatted);
   };
 
   const handleSave = (category) => {
-    const limitNum = parseFloat(tempLimit);
+    const cleanStr = tempLimit.replace(/\./g, '').replace(',', '.');
+    const limitNum = parseFloat(cleanStr);
     if (!isNaN(limitNum) && limitNum >= 0) {
       onUpdateBudget(category, limitNum);
       setEditingCategory(null);
@@ -169,9 +189,10 @@ export const Planning = ({ budgets, transactions, onUpdateBudget }) => {
                   <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Limite</span>
                   {isEditing ? (
                     <input 
-                      type="number" 
+                      type="text" 
+                      inputMode="numeric"
                       value={tempLimit} 
-                      onChange={(e) => setTempLimit(e.target.value)}
+                      onChange={handleLimitChange}
                       style={{ padding: '0.25rem 0.5rem', fontSize: '0.85rem', width: '100px' }}
                       autoFocus
                     />

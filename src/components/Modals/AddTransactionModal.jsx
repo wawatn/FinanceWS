@@ -409,6 +409,7 @@ export const AddTransactionModal = ({ isOpen, onClose, onSave, editingTransactio
                 </span>
                  <input
                   type="text"
+                  inputMode="numeric"
                   required
                   placeholder="0,00"
                   value={amount}

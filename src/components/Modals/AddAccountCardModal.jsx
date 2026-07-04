@@ -28,17 +28,42 @@ export const AddAccountCardModal = ({ isOpen, onClose, onSave, type, editingItem
   const [cardDueDay, setCardDueDay] = useState(10);
   const [cardColor, setCardColor] = useState(PRESET_COLORS[0]);
 
+  const handleMoneyChange = (val, setter) => {
+    const digits = val.replace(/\D/g, '');
+    if (!digits) {
+      setter('');
+      return;
+    }
+    const numericValue = parseFloat(digits) / 100;
+    const formatted = new Intl.NumberFormat('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(numericValue);
+    setter(formatted);
+  };
+
+  const parseMoney = (val) => {
+    if (!val) return 0;
+    const cleanStr = String(val).replace(/\./g, '').replace(',', '.');
+    return parseFloat(cleanStr) || 0;
+  };
+
   useEffect(() => {
+    const formatValue = (num) => {
+      if (num === undefined || num === null) return '';
+      return new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num);
+    };
+
     if (editingItem) {
       if (type === 'account') {
         setAccName(editingItem.name || '');
-        setAccBalance(editingItem.balance !== undefined ? String(editingItem.balance) : '');
+        setAccBalance(formatValue(editingItem.balance));
         setAccType(editingItem.type || 'checking');
         setAccColor(editingItem.color || PRESET_COLORS[0]);
       } else if (type === 'card') {
         setCardName(editingItem.name || '');
-        setCardLimit(editingItem.limit !== undefined ? String(editingItem.limit) : '');
-        setCardInvoice(editingItem.invoice !== undefined ? String(editingItem.invoice) : '');
+        setCardLimit(formatValue(editingItem.limit));
+        setCardInvoice(formatValue(editingItem.invoice));
         setCardClosingDay(editingItem.closingDay || 5);
         setCardDueDay(editingItem.dueDay || 10);
         setCardColor(editingItem.color || PRESET_COLORS[0]);
@@ -52,7 +77,7 @@ export const AddAccountCardModal = ({ isOpen, onClose, onSave, type, editingItem
 
       setCardName('');
       setCardLimit('');
-      setCardInvoice('0');
+      setCardInvoice('0,00');
       setCardClosingDay(5);
       setCardDueDay(10);
       setCardColor(PRESET_COLORS[0]);
@@ -71,7 +96,7 @@ export const AddAccountCardModal = ({ isOpen, onClose, onSave, type, editingItem
       }
       onSave({
         name: accName,
-        balance: parseFloat(accBalance),
+        balance: parseMoney(accBalance),
         type: accType,
         color: accColor
       });
@@ -82,8 +107,8 @@ export const AddAccountCardModal = ({ isOpen, onClose, onSave, type, editingItem
       }
       onSave({
         name: cardName,
-        limit: parseFloat(cardLimit),
-        invoice: parseFloat(cardInvoice || 0),
+        limit: parseMoney(cardLimit),
+        invoice: parseMoney(cardInvoice || 0),
         closingDay: parseInt(cardClosingDay),
         dueDay: parseInt(cardDueDay),
         color: cardColor
@@ -126,13 +151,13 @@ export const AddAccountCardModal = ({ isOpen, onClose, onSave, type, editingItem
                   <div>
                     <label>Saldo Inicial (R$)*</label>
                     <input
-                      type="number"
-                      step="0.01"
+                      type="text"
+                      inputMode="numeric"
                       required
                       placeholder="0,00"
                       value={accBalance}
                       disabled={!!editingItem} // Evitar alteração arbitrária de saldo em edição para não bagunçar histórico
-                      onChange={(e) => setAccBalance(e.target.value)}
+                      onChange={(e) => handleMoneyChange(e.target.value, setAccBalance)}
                     />
                   </div>
                   <div>
@@ -189,23 +214,23 @@ export const AddAccountCardModal = ({ isOpen, onClose, onSave, type, editingItem
                   <div>
                     <label>Limite Total (R$)*</label>
                     <input
-                      type="number"
-                      step="0.01"
+                      type="text"
+                      inputMode="numeric"
                       required
                       placeholder="0,00"
                       value={cardLimit}
-                      onChange={(e) => setCardLimit(e.target.value)}
+                      onChange={(e) => handleMoneyChange(e.target.value, setCardLimit)}
                     />
                   </div>
                   <div>
                     <label>Fatura Atual (R$)</label>
                     <input
-                      type="number"
-                      step="0.01"
+                      type="text"
+                      inputMode="numeric"
                       placeholder="0,00"
                       value={cardInvoice}
                       disabled={!!editingItem} // Saldo da fatura é atualizado pelas transações
-                      onChange={(e) => setCardInvoice(e.target.value)}
+                      onChange={(e) => handleMoneyChange(e.target.value, setCardInvoice)}
                     />
                   </div>
                 </div>

@@ -155,31 +155,48 @@ export const parseSmartInput = (text, accounts = [], cards = [], defaultAccountI
 
   // 1. Extrair Valor (Amount)
   let amount = 0;
-  const valueRegex = /(?:r\$\s*)?(\d+(?:[.,]\d{1,2})?)/gi;
-  const matches = [...normalized.matchAll(valueRegex)];
-  
   let foundValue = false;
-  for (const match of matches) {
-    const valStr = match[1].replace(',', '.');
-    const val = parseFloat(valStr);
+
+  // Detectar padrão de fala: "cinco e noventa e nove" que transcreve como "5 e 99"
+  // Também detecta "cinco reais e noventa e nove" ou "5 reais e 99"
+  const spokenValueRegex = /(\d+)\s*(?:reais|real)?\s*e\s*(\d{1,2})\b/i;
+  const spokenMatch = normalized.match(spokenValueRegex);
+  if (spokenMatch) {
+    const integers = spokenMatch[1];
+    let cents = spokenMatch[2];
+    if (cents.length === 1) {
+      cents = '0' + cents; // "5 e 9" -> "5,09"
+    }
+    amount = parseFloat(integers + '.' + cents);
+    foundValue = true;
+  }
+
+  if (!foundValue) {
+    const valueRegex = /(?:r\$\s*)?(\d+(?:[.,]\d{1,2})?)/gi;
+    const matches = [...normalized.matchAll(valueRegex)];
     
-    if (!isNaN(val) && val > 0) {
-      const index = match.index;
-      const precedingText = normalized.substring(Math.max(0, index - 10), index);
-      const proceedingText = normalized.substring(index + match[0].length, index + match[0].length + 15);
+    for (const match of matches) {
+      const valStr = match[1].replace(',', '.');
+      const val = parseFloat(valStr);
       
-      if (precedingText.includes('dia ') && !proceedingText.includes('real') && !proceedingText.includes('reais') && val <= 31) {
-        continue;
+      if (!isNaN(val) && val > 0) {
+        const index = match.index;
+        const precedingText = normalized.substring(Math.max(0, index - 10), index);
+        const proceedingText = normalized.substring(index + match[0].length, index + match[0].length + 15);
+        
+        if (precedingText.includes('dia ') && !proceedingText.includes('real') && !proceedingText.includes('reais') && val <= 31) {
+          continue;
+        }
+        
+        const isInstallmentIndicator = proceedingText.match(/^\s*(?:x|vezes|parcelas)/i);
+        if (isInstallmentIndicator && val <= 48) {
+          continue; 
+        }
+        
+        amount = val;
+        foundValue = true;
+        break;
       }
-      
-      const isInstallmentIndicator = proceedingText.match(/^\s*(?:x|vezes|parcelas)/i);
-      if (isInstallmentIndicator && val <= 48) {
-        continue; 
-      }
-      
-      amount = val;
-      foundValue = true;
-      break;
     }
   }
 
@@ -328,6 +345,30 @@ export const parseSmartInput = (text, accounts = [], cards = [], defaultAccountI
   description = description.replace(/\b(no|na|em|de|para|do|da|dos|das|nos|nas|reais|real|paguei|gastei|recebi|salario|ganhei|compras?|cartao|credito|dinheiro|carteira|nubank|itau|inter|banco|pagamento|pix|transferir|transferencia|enviar|com|um|uma|o|a|os|as|meu|minha|adiciona|adicionar|lanca|lancar|cadastra|cadastrar|inclui|incluir|registra|registrar|valor)\b/gi, '');
 
   description = description.replace(/\s+/g, ' ').trim();
+
+  // Filtro Dinâmico: Remover palavras que compõem nomes das contas/cartões ativos da descrição
+  if (description.length > 0) {
+    const descWords = description.split(/\s+/);
+    const bannedWords = [];
+    
+    for (const acc of accounts) {
+      const parts = acc.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').split(/\s+/);
+      bannedWords.push(...parts);
+    }
+    for (const card of cards) {
+      const parts = card.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').split(/\s+/);
+      bannedWords.push(...parts);
+    }
+
+    // Filtra palavras compostas
+    const filteredWords = descWords.filter(word => {
+      const wordNorm = word.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      // Ignora palavras banidas de bancos/contas
+      return !bannedWords.includes(wordNorm);
+    });
+
+    description = filteredWords.join(' ').replace(/\s+/g, ' ').trim();
+  }
   
   if (description.length < 3) {
     const words = text.split(' ').filter(w => {
