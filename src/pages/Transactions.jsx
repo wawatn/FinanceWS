@@ -193,15 +193,26 @@ export const Transactions = ({
   };
 
   const formatDateHeader = (dateStr) => {
+    if (!dateStr) return 'Data Indefinida';
     const dateObj = new Date(dateStr + 'T00:00:00');
     
-    // Obter o dia da semana em português
-    const weekday = dateObj.toLocaleDateString('pt-BR', { weekday: 'long' });
-    const capitalizedWeekday = weekday.charAt(0).toUpperCase() + weekday.slice(1).split('-')[0];
+    // Fallback de parse para navegadores mobile legados (como Safari antigo)
+    if (isNaN(dateObj.getTime())) {
+      const parts = dateStr.split('-');
+      if (parts.length === 3) {
+        return `Dia ${parts[2]}/${parts[1]}`;
+      }
+      return 'Data Indefinida';
+    }
+
+    const weekdays = [
+      'Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'
+    ];
     
+    const weekday = weekdays[dateObj.getDay()];
     const day = dateObj.getDate().toString().padStart(2, '0');
     
-    return `${capitalizedWeekday}, ${day}`;
+    return `${weekday}, ${day}`;
   };
 
   const groupedTransactions = groupTransactionsByDate();
@@ -493,7 +504,7 @@ export const Transactions = ({
         </Card>
 
         {/* VERSÃO MOBILE: LISTA AGRUPADA POR DATA ESTILO MOBILLS (Visível apenas no Celular) */}
-        <div className="mobile-only-transactions-list" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <div className="mobile-only-transactions-list" style={{ gap: '1.25rem' }}>
           {groupedTransactions.length > 0 ? (
             groupedTransactions.map((group) => (
               <div key={group.date} style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
