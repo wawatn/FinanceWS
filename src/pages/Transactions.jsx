@@ -186,7 +186,7 @@ export const Transactions = ({
       return acc;
     }, {});
 
-    return Object.keys(grouped).sort((a, b) => new Date(b + 'T00:00:00') - new Date(a + 'T00:00:00')).map(dateStr => ({
+    return Object.keys(grouped).sort((a, b) => b.localeCompare(a)).map(dateStr => ({
       date: dateStr,
       items: grouped[dateStr]
     }));
@@ -593,7 +593,7 @@ export const Transactions = ({
                           {/* Valor e Ações */}
                           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'end', gap: '0.3rem' }}>
                             <strong className={isTransfer ? '' : (isIncome ? 'text-income' : 'text-expense')} style={{ fontSize: '0.95rem', color: isTransfer ? 'var(--text)' : undefined, fontWeight: 700 }}>
-                              {isTransfer ? '' : (isIncome ? 'R$ ' : 'R$ ')}{formatCurrency(tx.amount).replace('R$', '').trim()}
+                              {isTransfer ? '⇅' : (isIncome ? '+' : '-')} {formatCurrency(tx.amount)}
                             </strong>
 
                             <div style={{ display: 'flex', gap: '0.25rem' }}>
