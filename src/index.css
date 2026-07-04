@@ -840,3 +840,17 @@ tr:hover td {
   }
 }
 
+/* Sidebar Column para Dashboard */
+.sidebar-column {
+  grid-column: span 4;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+@media (max-width: 1024px) {
+  .sidebar-column {
+    grid-column: span 12;
+  }
+}
+

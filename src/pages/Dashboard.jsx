@@ -4,6 +4,7 @@ import { CashFlowSummary } from '../components/Dashboard/CashFlowSummary';
 import { CategoryChart } from '../components/Dashboard/CategoryChart';
 import { RecentTransactions } from '../components/Dashboard/RecentTransactions';
 import { CardLimits } from '../components/Dashboard/CardLimits';
+import { AccountsSummary } from '../components/Dashboard/AccountsSummary';
 
 export const Dashboard = ({ 
   accounts, 
@@ -62,10 +63,19 @@ export const Dashboard = ({
         onToggleStatus={onToggleStatus}
         onViewAll={onViewAllTransactions}
       />
-      <CardLimits 
-        cards={cards} 
-        onManage={onManageAccountsCards} 
-      />
+      
+      <div className="sidebar-column">
+        <AccountsSummary 
+          accounts={accounts} 
+          transactions={transactions} 
+          onManage={onManageAccountsCards} 
+        />
+        <CardLimits 
+          cards={cards} 
+          onManage={onManageAccountsCards} 
+          className=""
+        />
+      </div>
     </div>
   );
 };

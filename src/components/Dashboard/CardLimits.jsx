@@ -3,9 +3,9 @@ import { Card } from '../UI/Card';
 import { CreditCard, Calendar } from 'lucide-react';
 import { formatCurrency } from '../../utils/formatters';
 
-export const CardLimits = ({ cards, onManage }) => {
+export const CardLimits = ({ cards, onManage, className }) => {
   return (
-    <Card className="col-4" style={{ minHeight: '380px', display: 'flex', flexDirection: 'column' }}>
+    <Card className={className !== undefined ? className : "col-4"} style={{ minHeight: '380px', display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem' }}>
         <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Meus Cartões</h3>
         <button 

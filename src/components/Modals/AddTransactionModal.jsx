@@ -239,6 +239,13 @@ export const AddTransactionModal = ({ isOpen, onClose, onSave, editingTransactio
     handleProcessSmartText(smartText);
   };
 
+  const handleSmartKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleProcessSmartText(smartText);
+    }
+  };
+
   const handleAmountChange = (e) => {
     const rawValue = e.target.value;
     const digits = rawValue.replace(/\D/g, '');
@@ -298,52 +305,7 @@ export const AddTransactionModal = ({ isOpen, onClose, onSave, editingTransactio
           </button>
         </div>
 
-        {/* 1. BARRA INTELIGENTE (FALE OU DIGITE) NO TOPO DO MODAL */}
-        {!editingTransaction && (
-          <div 
-            style={{ 
-              padding: '1rem 1.5rem', 
-              borderBottom: '1px solid var(--border)',
-              backgroundColor: 'var(--surface-secondary)'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem' }}>
-              <Sparkles size={14} className="text-income" />
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                Escreva para autopreencher os campos abaixo
-              </span>
-            </div>
 
-            <form onSubmit={handleSmartSubmit} className="smart-input-container" style={{ padding: '0.25rem 1rem' }}>
-              <Sparkles size={16} style={{ color: 'var(--primary)' }} />
-              
-              <input 
-                type="text" 
-                value={smartText}
-                onChange={(e) => setSmartText(e.target.value)}
-                placeholder="Ex: 'Streaming 49,90 no cartão Nubank fixo'"
-                className="smart-input-field"
-                disabled={isListening}
-                style={{ fontSize: '0.85rem', padding: '0.25rem 0' }}
-              />
-
-              <button 
-                type="submit" 
-                className="btn-icon" 
-                style={{ borderRadius: '50%', width: '34px', height: '34px', color: 'var(--primary)' }}
-                disabled={smartText.trim() === '' || isListening}
-              >
-                <Send size={16} />
-              </button>
-            </form>
-
-            {smartError && (
-              <span style={{ color: 'var(--expense)', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block', paddingLeft: '0.25rem' }}>
-                {smartError}
-              </span>
-            )}
-          </div>
-        )}
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
           <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', overflowY: 'auto', flex: 1 }}>
@@ -777,6 +739,55 @@ export const AddTransactionModal = ({ isOpen, onClose, onSave, editingTransactio
             )}
 
           </div>
+
+          {/* BARRA INTELIGENTE DE AUTO-PREENCHIMENTO (ERGONÔMICA NA PARTE INFERIOR) */}
+          {!editingTransaction && (
+            <div 
+              style={{ 
+                padding: '0.75rem 1.5rem', 
+                borderTop: '1px solid var(--border)',
+                backgroundColor: 'var(--surface-secondary)'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.4rem' }}>
+                <Sparkles size={13} className="text-income" />
+                <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                  Escreva para autopreencher os campos abaixo
+                </span>
+              </div>
+
+              <div className="smart-input-container" style={{ padding: '0.25rem 1rem' }}>
+                <Sparkles size={16} style={{ color: 'var(--primary)' }} />
+                
+                <input 
+                  type="text" 
+                  value={smartText}
+                  onChange={(e) => setSmartText(e.target.value)}
+                  onKeyDown={handleSmartKeyDown}
+                  placeholder="Ex: 'Streaming 49,90 no cartão Nubank'"
+                  className="smart-input-field"
+                  disabled={isListening}
+                  style={{ fontSize: '0.85rem', padding: '0.25rem 0' }}
+                />
+
+                <button 
+                  type="button" 
+                  onClick={() => handleProcessSmartText(smartText)}
+                  className="btn-icon" 
+                  style={{ borderRadius: '50%', width: '34px', height: '34px', color: 'var(--primary)' }}
+                  disabled={smartText.trim() === '' || isListening}
+                >
+                  <Send size={16} />
+                </button>
+              </div>
+
+              {smartError && (
+                <span style={{ color: 'var(--expense)', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block', paddingLeft: '0.25rem' }}>
+                  {smartError}
+                </span>
+              )}
+            </div>
+          )}
 
           {/* RODAPÉ ERGONÔMICO COM MICROFONE CENTRALIZADO */}
           <div className="modal-footer" style={{ padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
