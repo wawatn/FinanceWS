@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Card } from '../components/UI/Card';
-import { formatCurrency } from '../utils/formatters';
+import { formatCurrency, formatDate } from '../utils/formatters';
 import { 
   Search, 
   Filter, 
