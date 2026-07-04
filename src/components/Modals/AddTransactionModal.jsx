@@ -82,7 +82,11 @@ export const AddTransactionModal = ({ isOpen, onClose, onSave, editingTransactio
   useEffect(() => {
     if (editingTransaction) {
       setType(editingTransaction.type || 'expense');
-      setAmount(editingTransaction.amount ? String(editingTransaction.amount) : '');
+      setAmount(
+        editingTransaction.amount 
+          ? new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(editingTransaction.amount)
+          : ''
+      );
       setDate(editingTransaction.date || '');
       setDescription(editingTransaction.description || '');
       setCategory(editingTransaction.category || 'Alimentação');
@@ -188,7 +192,11 @@ export const AddTransactionModal = ({ isOpen, onClose, onSave, editingTransactio
 
     const parsed = parseSmartInput(text, accounts, cards);
     if (parsed && parsed.amount > 0) {
-      setAmount(String(parsed.amount));
+      setAmount(
+        parsed.amount 
+          ? new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(parsed.amount)
+          : ''
+      );
       setDescription(parsed.description);
       setDate(parsed.date);
       setCategory(parsed.category);
@@ -230,6 +238,21 @@ export const AddTransactionModal = ({ isOpen, onClose, onSave, editingTransactio
     handleProcessSmartText(smartText);
   };
 
+  const handleAmountChange = (e) => {
+    const rawValue = e.target.value;
+    const digits = rawValue.replace(/\D/g, '');
+    if (!digits) {
+      setAmount('');
+      return;
+    }
+    const numericValue = parseFloat(digits) / 100;
+    const formatted = new Intl.NumberFormat('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(numericValue);
+    setAmount(formatted);
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!amount || !description || !date) {
@@ -244,7 +267,7 @@ export const AddTransactionModal = ({ isOpen, onClose, onSave, editingTransactio
 
     const txData = {
       description,
-      amount: parseFloat(amount),
+      amount: parseFloat(amount.replace(/\./g, '').replace(',', '.')),
       date,
       category: type === 'transfer' ? 'Transferência' : category,
       type,
@@ -383,14 +406,12 @@ export const AddTransactionModal = ({ isOpen, onClose, onSave, editingTransactio
                 <span style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', fontWeight: 600, color: 'var(--text-secondary)' }}>
                   R$
                 </span>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0.01"
+                 <input
+                  type="text"
                   required
                   placeholder="0,00"
                   value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
+                  onChange={handleAmountChange}
                   style={{ paddingLeft: '2.5rem', fontSize: '1.15rem', fontWeight: 700 }}
                 />
               </div>

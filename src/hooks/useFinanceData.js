@@ -701,6 +701,72 @@ export const useFinanceData = () => {
     setCards(prev => prev.map(c => c.id === id ? { ...c, ...updatedCard } : c));
   };
 
+  // EXCLUIR CONTA BANCÁRIA
+  const deleteAccount = async (accountId) => {
+    if (!activeSpaceUserId) return;
+    
+    // 1. Excluir lançamentos associados no banco de dados para evitar erro de chave estrangeira
+    const { error: txError } = await supabase
+      .from('transactions')
+      .delete()
+      .eq('account_id', accountId);
+      
+    if (txError) {
+      console.error('Erro ao excluir lançamentos da conta:', txError.message);
+      alert('Erro ao excluir os lançamentos associados a esta conta.');
+      return;
+    }
+
+    // 2. Excluir a conta em si
+    const { error: accError } = await supabase
+      .from('accounts')
+      .delete()
+      .eq('id', accountId);
+
+    if (accError) {
+      console.error('Erro ao excluir conta:', accError.message);
+      alert('Erro ao excluir a conta.');
+      return;
+    }
+
+    // 3. Atualizar estados locais
+    setAccounts(prev => prev.filter(acc => acc.id !== accountId));
+    setTransactions(prev => prev.filter(tx => tx.accountId !== accountId));
+  };
+
+  // EXCLUIR CARTÃO DE CRÉDITO
+  const deleteCard = async (cardId) => {
+    if (!activeSpaceUserId) return;
+
+    // 1. Excluir lançamentos associados no banco de dados para evitar erro de chave estrangeira
+    const { error: txError } = await supabase
+      .from('transactions')
+      .delete()
+      .eq('card_id', cardId);
+
+    if (txError) {
+      console.error('Erro ao excluir lançamentos do cartão:', txError.message);
+      alert('Erro ao excluir os lançamentos associados a este cartão.');
+      return;
+    }
+
+    // 2. Excluir o cartão em si
+    const { error: cardError } = await supabase
+      .from('cards')
+      .delete()
+      .eq('id', cardId);
+
+    if (cardError) {
+      console.error('Erro ao excluir cartão:', cardError.message);
+      alert('Erro ao excluir o cartão.');
+      return;
+    }
+
+    // 3. Atualizar estados locais
+    setCards(prev => prev.filter(card => card.id !== cardId));
+    setTransactions(prev => prev.filter(tx => tx.cardId !== cardId));
+  };
+
   // GERENCIAR ORÇAMENTOS
   const updateBudget = async (category, limit) => {
     if (!activeSpaceUserId) return;
@@ -817,8 +883,10 @@ export const useFinanceData = () => {
     emptyTrash,
     addAccount,
     editAccount,
+    deleteAccount,
     addCard,
     editCard,
+    deleteCard,
     updateBudget,
     importOfxTransactions,
     inviteUser,

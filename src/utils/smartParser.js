@@ -7,6 +7,151 @@ export const parseSmartInput = (text, accounts = [], cards = []) => {
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, ''); // Remove acentos
 
+  const isCredit = normalized.includes('cartao') || normalized.includes('credito') || normalized.includes('fatura') || normalized.includes('samsung pay') || normalized.includes('wallet');
+
+  // Auxiliar para encontrar conta ou cartão pelo nome na frase
+  const findAccountOrCard = (searchTerm) => {
+    for (const card of cards) {
+      const cardNorm = card.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      if (searchTerm.includes(cardNorm)) return { id: card.id, isCard: true };
+    }
+    for (const acc of accounts) {
+      const accNorm = acc.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      if (searchTerm.includes(accNorm)) return { id: acc.id, isCard: false };
+    }
+
+    if (searchTerm.includes('nubank') || searchTerm.includes('nu')) {
+      const card = cards.find(c => c.name.toLowerCase().includes('nubank'));
+      const acc = accounts.find(a => a.name.toLowerCase().includes('nubank'));
+      return isCredit && card ? { id: card.id, isCard: true } : (acc ? { id: acc.id, isCard: false } : null);
+    }
+    if (searchTerm.includes('itau')) {
+      const card = cards.find(c => c.name.toLowerCase().includes('itau'));
+      const acc = accounts.find(a => a.name.toLowerCase().includes('itau'));
+      return isCredit && card ? { id: card.id, isCard: true } : (acc ? { id: acc.id, isCard: false } : null);
+    }
+    if (searchTerm.includes('inter')) {
+      const card = cards.find(c => c.name.toLowerCase().includes('inter'));
+      const acc = accounts.find(a => a.name.toLowerCase().includes('inter'));
+      return isCredit && card ? { id: card.id, isCard: true } : (acc ? { id: acc.id, isCard: false } : null);
+    }
+    if (searchTerm.includes('carteira') || searchTerm.includes('dinheiro')) {
+      const acc = accounts.find(a => a.name.toLowerCase().includes('carteira') || a.name.toLowerCase().includes('dinheiro'));
+      if (acc) return { id: acc.id, isCard: false };
+    }
+    return null;
+  };
+
+  const categoryMappings = {
+    'Alimentação': ['padaria', 'mercado', 'almoco', 'jantar', 'lanche', 'restaurante', 'comida', 'pizza', 'ifood', 'supermercado', 'cafe', 'pao', 'doces', 'acai', 'churrascaria'],
+    'Transporte': ['gasolina', 'combustivel', 'uber', 'taxi', 'onibus', 'pedagio', 'metro', 'posto', 'estacionamento', 'passagem'],
+    'Moradia': ['aluguel', 'luz', 'agua', 'energia', 'internet', 'gas', 'condominio', 'reforma', 'moveis'],
+    'Lazer': ['cinema', 'cerveja', 'show', 'bar', 'viagem', 'festa', 'churrasco', 'jogo', 'praia', 'hotel', 'balada', 'boteco'],
+    'Educação': ['curso', 'escola', 'faculdade', 'livro', 'mensalidade', 'copia', 'material escolar'],
+    'Saúde': ['farmacia', 'remedio', 'medico', 'consulta', 'dentista', 'hospital', 'exame', 'psicologo'],
+    'Assinaturas': ['netflix', 'spotify', 'prime', 'disney', 'youtube', 'hbo', 'crunchyroll', 'cloud', 'mensalidade app'],
+    'Vestuário': ['roupa', 'sapato', 'tenis', 'camisa', 'calca', 'loja', 'shopping', 'vestido', 'acessorios'],
+    'Beleza': ['salao', 'cabelo', 'barba', 'barbearia', 'cosmetico', 'perfume', 'manicure'],
+  };
+
+  // ==========================================
+  // A. RECONHECIMENTO DE NOTIFICAÇÕES BANCÁRIAS (Colagem direta)
+  // ==========================================
+  const notificationPatterns = [
+    // 1. Pix Recebido / Depósito / Receita
+    {
+      regex: /(?:pix recebido|recebeu um pix|recebeu um deposito|deposito recebido|transferencia recebida)\s+(?:de\s+)?(?:r\$\s*)?(\d+(?:[.,]\d{1,2})?)\s+(?:de|do|da|por)\s+([^,.\n]+)/i,
+      type: 'income',
+      category: 'Rendimentos',
+      handler: (match) => {
+        const amount = parseFloat(match[1].replace(',', '.'));
+        const rawDesc = match[2].trim();
+        // Limpar termos adicionais comuns do fim
+        const description = rawDesc.replace(/\b(no seu cartao|no Nubank|no Itau|no Inter|pelo pix|final \d+|em sua conta)\b/gi, '').trim();
+        return {
+          amount,
+          description: `Pix - ${description}`,
+          type: 'income',
+          category: 'Rendimentos'
+        };
+      }
+    },
+    // 2. Compra no Cartão / Débito (Despesa)
+    {
+      regex: /(?:compra de|gastou|compra aprovada|transacao aprovada|pagamento de|compra no valor de)\s+(?:r\$\s*)?(\d+(?:[.,]\d{1,2})?)\s+(?:no estabelecimento|no|na|em)\s+([^,.\n]+)/i,
+      type: 'expense',
+      handler: (match) => {
+        const amount = parseFloat(match[1].replace(',', '.'));
+        const rawDesc = match[2].trim();
+        // Limpar sufixos de aprovação de cartão comuns nas notificações
+        const description = rawDesc.replace(/\b(no seu cartao|com final \d+|aprovada|no Nubank|no Itau|no Inter|no credito|no debito|com o cartao)\b/gi, '').trim();
+        return {
+          amount,
+          description: description,
+          type: 'expense'
+        };
+      }
+    }
+  ];
+
+  for (const pattern of notificationPatterns) {
+    const match = normalized.match(pattern.regex);
+    if (match) {
+      const parsed = pattern.handler(match);
+      if (parsed) {
+        // Refinar categoria
+        let category = parsed.category || 'Outros';
+        if (parsed.type === 'expense') {
+          for (const [catName, keywords] of Object.entries(categoryMappings)) {
+            const descNorm = parsed.description.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            if (keywords.some(keyword => descNorm.includes(keyword))) {
+              category = catName;
+              break;
+            }
+          }
+        }
+
+        // Determinar conta/cartão
+        let selectedAccount = null;
+        let selectedCard = null;
+        const matchedSource = findAccountOrCard(normalized);
+        if (matchedSource) {
+          if (matchedSource.isCard) selectedCard = matchedSource.id;
+          else selectedAccount = matchedSource.id;
+        }
+
+        if (!selectedAccount && !selectedCard) {
+          if (isCredit && cards.length > 0) {
+            selectedCard = cards[0].id;
+          } else if (accounts.length > 0) {
+            selectedAccount = accounts[0].id;
+          }
+        }
+
+        const finalDescription = parsed.description.charAt(0).toUpperCase() + parsed.description.slice(1).replace(/\s+/g, ' ').trim();
+
+        return {
+          description: finalDescription,
+          amount: parsed.amount,
+          date: getTodayString(),
+          category,
+          accountId: selectedAccount,
+          cardId: selectedCard,
+          destinationAccountId: null,
+          type: parsed.type,
+          status: 'confirmed',
+          isInstallment: false,
+          installmentCount: 1,
+          isFixed: false
+        };
+      }
+    }
+  }
+
+  // ==========================================
+  // B. REGULAR PARSER (HEURÍSTICAS DE FALA)
+  // ==========================================
+
   // 1. Extrair Valor (Amount)
   let amount = 0;
   const valueRegex = /(?:r\$\s*)?(\d+(?:[.,]\d{1,2})?)/gi;
@@ -72,18 +217,6 @@ export const parseSmartInput = (text, accounts = [], cards = []) => {
   // 4. Determinar Categoria (Category)
   let category = type === 'income' ? 'Rendimentos' : (type === 'transfer' ? 'Outros' : 'Outros');
   
-  const categoryMappings = {
-    'Alimentação': ['padaria', 'mercado', 'almoco', 'jantar', 'lanche', 'restaurante', 'comida', 'pizza', 'ifood', 'supermercado', 'cafe', 'pao', 'doces', 'acai', 'churrascaria'],
-    'Transporte': ['gasolina', 'combustivel', 'uber', 'taxi', 'onibus', 'pedagio', 'metro', 'posto', 'estacionamento', 'passagem'],
-    'Moradia': ['aluguel', 'luz', 'agua', 'energia', 'internet', 'gas', 'condominio', 'reforma', 'moveis'],
-    'Lazer': ['cinema', 'cerveja', 'show', 'bar', 'viagem', 'festa', 'churrasco', 'jogo', 'praia', 'hotel', 'balada', 'boteco'],
-    'Educação': ['curso', 'escola', 'faculdade', 'livro', 'mensalidade', 'copia', 'material escolar'],
-    'Saúde': ['farmacia', 'remedio', 'medico', 'consulta', 'dentista', 'hospital', 'exame', 'psicologo'],
-    'Assinaturas': ['netflix', 'spotify', 'prime', 'disney', 'youtube', 'hbo', 'crunchyroll', 'cloud', 'mensalidade app'],
-    'Vestuário': ['roupa', 'sapato', 'tenis', 'camisa', 'calca', 'loja', 'shopping', 'vestido', 'acessorios'],
-    'Beleza': ['salao', 'cabelo', 'barba', 'barbearia', 'cosmetico', 'perfume', 'manicure'],
-  };
-
   if (type === 'expense') {
     for (const [catName, keywords] of Object.entries(categoryMappings)) {
       if (keywords.some(keyword => normalized.includes(keyword))) {
@@ -97,40 +230,6 @@ export const parseSmartInput = (text, accounts = [], cards = []) => {
   let selectedAccount = null;
   let selectedCard = null;
   let selectedDestinationAccount = null;
-
-  const isCredit = normalized.includes('cartao') || normalized.includes('credito') || normalized.includes('fatura');
-
-  const findAccountOrCard = (searchTerm) => {
-    for (const card of cards) {
-      const cardNorm = card.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-      if (searchTerm.includes(cardNorm)) return { id: card.id, isCard: true };
-    }
-    for (const acc of accounts) {
-      const accNorm = acc.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-      if (searchTerm.includes(accNorm)) return { id: acc.id, isCard: false };
-    }
-
-    if (searchTerm.includes('nubank') || searchTerm.includes('nu')) {
-      const card = cards.find(c => c.name.toLowerCase().includes('nubank'));
-      const acc = accounts.find(a => a.name.toLowerCase().includes('nubank'));
-      return isCredit && card ? { id: card.id, isCard: true } : (acc ? { id: acc.id, isCard: false } : null);
-    }
-    if (searchTerm.includes('itau')) {
-      const card = cards.find(c => c.name.toLowerCase().includes('itau'));
-      const acc = accounts.find(a => a.name.toLowerCase().includes('itau'));
-      return isCredit && card ? { id: card.id, isCard: true } : (acc ? { id: acc.id, isCard: false } : null);
-    }
-    if (searchTerm.includes('inter')) {
-      const card = cards.find(c => c.name.toLowerCase().includes('inter'));
-      const acc = accounts.find(a => a.name.toLowerCase().includes('inter'));
-      return isCredit && card ? { id: card.id, isCard: true } : (acc ? { id: acc.id, isCard: false } : null);
-    }
-    if (searchTerm.includes('carteira') || searchTerm.includes('dinheiro') || searchTerm.includes('carteira') || searchTerm.includes('dinheiro')) {
-      const acc = accounts.find(a => a.name.toLowerCase().includes('carteira') || a.name.toLowerCase().includes('dinheiro'));
-      if (acc) return { id: acc.id, isCard: false };
-    }
-    return null;
-  };
 
   if (type === 'transfer') {
     const fromMatch = normalized.match(/(?:de|do|da)\s+(\w+)/i);
@@ -221,10 +320,10 @@ export const parseSmartInput = (text, accounts = [], cards = []) => {
   description = description.replace(/\b\d+\s*(?:x|vezes|parcelas)\b/gi, '');
   description = description.replace(/\b(parcelado|dividido)\s*em\b/gi, '');
   
-  // Limpar termos fixos
+  // Limpar termos fixos e conectivos
   description = description.replace(/\b(fixo|fixa|mensal|recorrente|assinatura)\b/gi, '');
   description = description.replace(/\b(hoje|ontem|amanha|dia\s+\d{1,2}|nao pago|pendente|para pagar|a pagar|recebido|pago|confirmado)\b/gi, '');
-  description = description.replace(/\b(no|na|em|de|para|do|da|reais|real|paguei|gastei|recebi|salario|ganhei|compras?|cartao|credito|dinheiro|carteira|nubank|itau|inter|banco|pagamento|pix|transferir|transferencia|enviar)\b/gi, '');
+  description = description.replace(/\b(no|na|em|de|para|do|da|dos|das|nos|nas|reais|real|paguei|gastei|recebi|salario|ganhei|compras?|cartao|credito|dinheiro|carteira|nubank|itau|inter|banco|pagamento|pix|transferir|transferencia|enviar|com|um|uma|o|a|os|as|meu|minha|adiciona|adicionar|lanca|lancar|cadastra|cadastrar|inclui|incluir|registra|registrar|valor)\b/gi, '');
 
   description = description.replace(/\s+/g, ' ').trim();
   

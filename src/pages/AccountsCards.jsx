@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Card } from '../components/UI/Card';
 import { formatCurrency } from '../utils/formatters';
-import { Wallet, CreditCard, Plus, Edit2, Calendar, ShieldCheck } from 'lucide-react';
+import { Wallet, CreditCard, Plus, Edit2, Calendar, ShieldCheck, Trash2 } from 'lucide-react';
 
 export const AccountsCards = ({ 
   accounts, 
@@ -10,8 +10,21 @@ export const AccountsCards = ({
   onEditAccount, 
   onAddCard, 
   onEditCard,
+  onDeleteAccount,
+  onDeleteCard,
   onOpenAddModal // Função para abrir o modal unificado
 }) => {
+  const handleDeleteAccount = (id) => {
+    if (window.confirm('Atenção: Excluir esta conta irá apagar todos os lançamentos associados a ela definitivamente. Deseja continuar?')) {
+      onDeleteAccount(id);
+    }
+  };
+
+  const handleDeleteCard = (id) => {
+    if (window.confirm('Atenção: Excluir este cartão de crédito irá apagar todos os lançamentos associados a ele definitivamente. Deseja continuar?')) {
+      onDeleteCard(id);
+    }
+  };
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       
@@ -55,14 +68,24 @@ export const AccountsCards = ({
                   </span>
                 </div>
                 
-                <button 
-                  className="btn-icon" 
-                  onClick={() => onOpenAddModal('account', acc)}
-                  style={{ padding: '0.35rem' }}
-                  title="Editar Conta"
-                >
-                  <Edit2 size={14} />
-                </button>
+                <div style={{ display: 'flex', gap: '0.25rem' }}>
+                  <button 
+                    className="btn-icon" 
+                    onClick={() => onOpenAddModal('account', acc)}
+                    style={{ padding: '0.35rem' }}
+                    title="Editar Conta"
+                  >
+                    <Edit2 size={14} />
+                  </button>
+                  <button 
+                    className="btn-icon" 
+                    onClick={() => handleDeleteAccount(acc.id)}
+                    style={{ padding: '0.35rem', color: 'var(--expense)' }}
+                    title="Excluir Conta"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               </div>
 
               <div style={{ paddingLeft: '0.5rem' }}>
@@ -121,14 +144,24 @@ export const AccountsCards = ({
                     </span>
                   </div>
                   
-                  <button 
-                    className="btn-icon" 
-                    onClick={() => onOpenAddModal('card', card)}
-                    style={{ padding: '0.35rem' }}
-                    title="Editar Cartão"
-                  >
-                    <Edit2 size={14} />
-                  </button>
+                  <div style={{ display: 'flex', gap: '0.25rem' }}>
+                    <button 
+                      className="btn-icon" 
+                      onClick={() => onOpenAddModal('card', card)}
+                      style={{ padding: '0.35rem' }}
+                      title="Editar Cartão"
+                    >
+                      <Edit2 size={14} />
+                    </button>
+                    <button 
+                      className="btn-icon" 
+                      onClick={() => handleDeleteCard(card.id)}
+                      style={{ padding: '0.35rem', color: 'var(--expense)' }}
+                      title="Excluir Cartão"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', paddingLeft: '0.5rem', marginBottom: '1rem' }}>

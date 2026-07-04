@@ -41,8 +41,10 @@ function App() {
     emptyTrash,
     addAccount,
     editAccount,
+    deleteAccount,
     addCard,
     editCard,
+    deleteCard,
     updateBudget,
     importOfxTransactions,
     inviteUser,
@@ -196,6 +198,8 @@ function App() {
             accounts={accounts}
             cards={cards}
             onOpenAddModal={handleOpenAddAccCard}
+            onDeleteAccount={deleteAccount}
+            onDeleteCard={deleteCard}
           />
         );
       case 'reports':
