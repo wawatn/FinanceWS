@@ -24,6 +24,7 @@ function App() {
     cards,
     budgets,
     transactions,
+    deletedTransactions,
     theme,
     loading,
     activeSpaceUserId,
@@ -35,6 +36,9 @@ function App() {
     editTransaction,
     deleteTransaction,
     toggleTransactionStatus,
+    restoreTransaction,
+    permanentlyDeleteTransaction,
+    emptyTrash,
     addAccount,
     editAccount,
     addCard,
@@ -168,10 +172,14 @@ function App() {
             transactions={transactions}
             accounts={accounts}
             cards={cards}
+            deletedTransactions={deletedTransactions}
             onAddClick={handleOpenAddTx}
             onEditClick={handleOpenEditTx}
             onDeleteClick={deleteTransaction}
             onToggleStatus={toggleTransactionStatus}
+            onRestoreClick={restoreTransaction}
+            onPermanentlyDeleteClick={permanentlyDeleteTransaction}
+            onEmptyTrash={emptyTrash}
           />
         );
       case 'planning':

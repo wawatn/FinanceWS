@@ -71,16 +71,21 @@ export const Transactions = ({
   transactions, 
   accounts, 
   cards, 
+  deletedTransactions = [],
   onAddClick, 
   onEditClick, 
   onDeleteClick,
-  onToggleStatus
+  onToggleStatus,
+  onRestoreClick,
+  onPermanentlyDeleteClick,
+  onEmptyTrash
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Todos');
   const [selectedSource, setSelectedSource] = useState('Todos'); 
   const [selectedStatus, setSelectedStatus] = useState('Todos'); 
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const [isTrashOpen, setIsTrashOpen] = useState(false);
   
   // Controle de Mês
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -219,34 +224,84 @@ export const Transactions = ({
     return `${weekday}, ${day}`;
   };
 
+  const formatDeletedTime = (isoString) => {
+    if (!isoString) return '';
+    const date = new Date(isoString);
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${day}/${month} às ${hours}:${minutes}`;
+  };
+
   const groupedTransactions = groupTransactionsByDate();
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       
-      {/* 1. SELETOR DE MÊS ESTILO MOBILLS (Seta Esquerda | Mês | Seta Direita) */}
+      {/* 1. CABEÇALHO DO EXTRATO (Seletor de Mês + Botão Lixeira) */}
       <div 
         style={{ 
           display: 'flex', 
           justifyContent: 'space-between', 
           alignItems: 'center', 
-          padding: '0 0.5rem'
+          padding: '0 0.25rem',
+          flexWrap: 'wrap',
+          gap: '1rem'
         }}
       >
+        {/* Seletor de Mês */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <button 
+            onClick={handlePrevMonth} 
+            style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+          >
+            <ArrowLeft size={20} />
+          </button>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: 700, textTransform: 'capitalize', color: 'var(--text)', margin: 0, minWidth: '100px', textAlign: 'center' }}>
+            {getMonthName()}
+          </h3>
+          <button 
+            onClick={handleNextMonth} 
+            style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+          >
+            <ArrowRight size={20} />
+          </button>
+        </div>
+
+        {/* Botão da Lixeira */}
         <button 
-          onClick={handlePrevMonth} 
-          style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '0.5rem' }}
+          onClick={() => setIsTrashOpen(true)}
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '0.45rem', 
+            padding: '0.5rem 0.85rem',
+            backgroundColor: 'var(--surface-secondary)',
+            border: '1px solid var(--border)',
+            color: 'var(--text)',
+            fontSize: '0.825rem',
+            fontWeight: 600,
+            borderRadius: '12px',
+            cursor: 'pointer',
+            transition: 'all 0.2s'
+          }}
         >
-          <ArrowLeft size={20} />
-        </button>
-        <h3 style={{ fontSize: '1.2rem', fontWeight: 700, textTransform: 'capitalize', color: 'var(--text)' }}>
-          {getMonthName()}
-        </h3>
-        <button 
-          onClick={handleNextMonth} 
-          style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '0.5rem' }}
-        >
-          <ArrowRight size={20} />
+          <Trash2 size={15} style={{ color: 'var(--text-secondary)' }} />
+          <span>Lixeira</span>
+          {deletedTransactions.length > 0 && (
+            <span style={{ 
+              backgroundColor: 'var(--expense)', 
+              color: '#ffffff', 
+              fontSize: '0.7rem', 
+              fontWeight: 700, 
+              padding: '0.1rem 0.4rem', 
+              borderRadius: '20px',
+              marginLeft: '0.2rem'
+            }}>
+              {deletedTransactions.length}
+            </span>
+          )}
         </button>
       </div>
 
@@ -681,6 +736,174 @@ export const Transactions = ({
         </div>
 
       </div>
+
+      {/* MODAL DA LIXEIRA */}
+      {isTrashOpen && (
+        <div className="modal-backdrop" onClick={() => setIsTrashOpen(false)}>
+          <div 
+            className="modal-content" 
+            onClick={(e) => e.stopPropagation()} 
+            style={{ 
+              maxWidth: '600px', 
+              width: '90%', 
+              maxHeight: '85vh', 
+              display: 'flex', 
+              flexDirection: 'column',
+              padding: '1.5rem',
+              borderRadius: '24px',
+              backgroundColor: 'var(--surface)',
+              border: '1px solid var(--border)',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
+              animation: 'scaleUp 0.25s ease'
+            }}
+          >
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text)' }}>
+                <Trash2 size={20} style={{ color: 'var(--expense)' }} />
+                Histórico da Lixeira
+              </h3>
+              <button 
+                onClick={() => setIsTrashOpen(false)}
+                style={{ 
+                  background: 'none', 
+                  border: 'none', 
+                  color: 'var(--text-secondary)', 
+                  fontSize: '1.5rem', 
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  padding: '0.25rem'
+                }}
+              >
+                &times;
+              </button>
+            </div>
+
+            {/* Ações da Lixeira */}
+            {deletedTransactions.length > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+                <button
+                  onClick={() => {
+                    if (window.confirm('Deseja realmente esvaziar a lixeira definitivamente? Esta ação não pode ser desfeita.')) {
+                      onEmptyTrash();
+                    }
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    backgroundColor: 'rgba(239, 83, 80, 0.1)',
+                    border: '1px solid rgba(239, 83, 80, 0.2)',
+                    color: 'var(--expense)',
+                    padding: '0.4rem 0.8rem',
+                    borderRadius: '8px',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Esvaziar Lixeira
+                </button>
+              </div>
+            )}
+
+            {/* Body (Lista de Lançamentos) */}
+            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingRight: '0.25rem' }}>
+              {deletedTransactions.length > 0 ? (
+                deletedTransactions.map((tx) => {
+                  const isIncome = tx.type === 'income';
+                  const isTransfer = tx.type === 'transfer';
+                  return (
+                    <div 
+                      key={tx.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '0.75rem 1rem',
+                        borderRadius: '16px',
+                        backgroundColor: 'var(--surface-secondary)',
+                        border: '1px solid var(--border)'
+                      }}
+                    >
+                      {/* Info Esquerda */}
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <strong style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {tx.description}
+                        </strong>
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'block', marginTop: '0.1rem' }}>
+                          {isTransfer ? 'Transferência' : tx.category} | Excluído {formatDeletedTime(tx.deletedAt)}
+                        </span>
+                      </div>
+
+                      {/* Info Direita (Valor + Botões) */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', marginLeft: '0.5rem' }}>
+                        <strong className={isTransfer ? '' : (isIncome ? 'text-income' : 'text-expense')} style={{ fontSize: '0.875rem', fontWeight: 700 }}>
+                          {isTransfer ? '⇅' : (isIncome ? '+' : '-')} {formatCurrency(tx.amount)}
+                        </strong>
+
+                        <div style={{ display: 'flex', gap: '0.35rem' }}>
+                          {/* Restaurar */}
+                          <button
+                            onClick={() => {
+                              onRestoreClick(tx);
+                            }}
+                            style={{
+                              backgroundColor: 'rgba(102, 187, 106, 0.1)',
+                              border: '1px solid rgba(102, 187, 106, 0.2)',
+                              color: 'var(--income)',
+                              padding: '0.3rem',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                            title="Restaurar Lançamento"
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                              <path d="M3 3v5h5"/>
+                            </svg>
+                          </button>
+
+                          {/* Excluir Definitivo */}
+                          <button
+                            onClick={() => {
+                              if (window.confirm('Excluir este lançamento definitivamente da lixeira?')) {
+                                onPermanentlyDeleteClick(tx.id);
+                              }
+                            }}
+                            style={{
+                              backgroundColor: 'rgba(239, 83, 80, 0.1)',
+                              border: '1px solid rgba(239, 83, 80, 0.2)',
+                              color: 'var(--expense)',
+                              padding: '0.3rem',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                            title="Excluir Definitivamente"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                  A lixeira está vazia. Lançamentos excluídos aparecerão aqui.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

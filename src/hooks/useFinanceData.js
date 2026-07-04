@@ -17,6 +17,14 @@ export const useFinanceData = () => {
   const [transactions, setTransactions] = useState([]);
   
   const [loading, setLoading] = useState(true);
+  const [deletedTransactions, setDeletedTransactions] = useState(() => {
+    try {
+      const stored = localStorage.getItem('mobills_deleted_transactions');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('mobills_theme') || 'dark';
   });
@@ -242,9 +250,9 @@ export const useFinanceData = () => {
   };
 
   // Ajustar saldos locais e em nuvem no espaço ativo
-  const adjustAccountOrCardBalance = async (tx, isAdding, isRollback = false) => {
+  const adjustAccountOrCardBalance = async (tx, isAdding) => {
     if (!activeSpaceUserId) return;
-    const multiplier = (isAdding ? 1 : -1) * (isRollback ? -1 : 1);
+    const multiplier = isAdding ? 1 : -1;
     
     // CASO 1: TRANSFERÊNCIA ENTRE CONTAS
     if (tx.type === 'transfer') {
@@ -475,7 +483,7 @@ export const useFinanceData = () => {
     if (!oldTx) return;
     
     // Reverter saldo antigo
-    await adjustAccountOrCardBalance(oldTx, false, true);
+    await adjustAccountOrCardBalance(oldTx, false);
 
     const txPayload = {
       description: updatedTx.description,
@@ -492,7 +500,7 @@ export const useFinanceData = () => {
     const { error } = await supabase.from('transactions').update(txPayload).eq('id', id);
     if (error) {
       console.error('Erro ao editar transação:', error.message);
-      // Destruição de reversão se falhar
+      // Destruição de reversão se falhar (re-debitar transação antiga)
       await adjustAccountOrCardBalance(oldTx, true);
       return;
     }
@@ -519,7 +527,81 @@ export const useFinanceData = () => {
       return;
     }
     
+    // Salvar na lixeira local
+    const txWithTime = { ...oldTx, deletedAt: new Date().toISOString() };
+    const updatedTrash = [txWithTime, ...deletedTransactions];
+    setDeletedTransactions(updatedTrash);
+    localStorage.setItem('mobills_deleted_transactions', JSON.stringify(updatedTrash));
+
     setTransactions(prev => prev.filter(t => t.id !== id));
+  };
+
+  // RESTAURAR TRANSAÇÃO DA LIXEIRA
+  const restoreTransaction = async (tx) => {
+    if (!activeSpaceUserId) return;
+
+    const txPayload = {
+      user_id: activeSpaceUserId,
+      description: tx.description,
+      amount: tx.amount,
+      date: tx.date,
+      category: tx.category,
+      account_id: tx.accountId || null,
+      card_id: tx.cardId || null,
+      destination_account_id: tx.destinationAccountId || null,
+      type: tx.type,
+      status: tx.status || 'confirmed',
+      installment_number: tx.installmentNumber || null,
+      total_installments: tx.totalInstallments || null,
+      is_fixed: tx.isFixed || false
+    };
+
+    const { data, error } = await supabase.from('transactions').insert([txPayload]).select();
+    if (error) {
+      console.error('Erro ao restaurar transação:', error.message);
+      alert('Erro ao restaurar transação no banco de dados.');
+      return;
+    }
+
+    const restored = {
+      id: data[0].id,
+      description: data[0].description,
+      amount: Number(data[0].amount),
+      date: data[0].date,
+      category: data[0].category,
+      accountId: data[0].account_id,
+      cardId: data[0].card_id,
+      destinationAccountId: data[0].destination_account_id,
+      type: data[0].type,
+      status: data[0].status,
+      installmentNumber: data[0].installment_number,
+      totalInstallments: data[0].total_installments,
+      isFixed: data[0].is_fixed
+    };
+
+    // Re-aplicar saldo
+    await adjustAccountOrCardBalance(restored, true);
+
+    // Adicionar de volta localmente
+    setTransactions(prev => [restored, ...prev]);
+
+    // Remover da lixeira
+    const updatedTrash = deletedTransactions.filter(t => t.id !== tx.id);
+    setDeletedTransactions(updatedTrash);
+    localStorage.setItem('mobills_deleted_transactions', JSON.stringify(updatedTrash));
+  };
+
+  // EXCLUIR DEFINITIVAMENTE DA LIXEIRA
+  const permanentlyDeleteTransaction = (id) => {
+    const updatedTrash = deletedTransactions.filter(t => t.id !== id);
+    setDeletedTransactions(updatedTrash);
+    localStorage.setItem('mobills_deleted_transactions', JSON.stringify(updatedTrash));
+  };
+
+  // ESVAZIAR LIXEIRA
+  const emptyTrash = () => {
+    setDeletedTransactions([]);
+    localStorage.removeItem('mobills_deleted_transactions');
   };
 
   // INTERRUPTOR RÁPIDO DE STATUS: CONFIRMAR PAGAMENTO (PAGO/PENDENTE)
@@ -718,6 +800,7 @@ export const useFinanceData = () => {
     cards,
     budgets,
     transactions,
+    deletedTransactions,
     theme,
     loading,
     activeSpaceUserId,
@@ -729,6 +812,9 @@ export const useFinanceData = () => {
     editTransaction,
     deleteTransaction,
     toggleTransactionStatus,
+    restoreTransaction,
+    permanentlyDeleteTransaction,
+    emptyTrash,
     addAccount,
     editAccount,
     addCard,
