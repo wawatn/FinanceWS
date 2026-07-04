@@ -52,13 +52,23 @@ export const Header = ({
         <div 
           className="user-profile" 
           onClick={onLogout}
-          style={{ cursor: 'pointer' }}
+          style={{ cursor: 'pointer', gap: '0.5rem' }}
           title="Clique para Sair da Conta"
         >
-          <div className="user-avatar">
-            <User size={18} />
+          <div className="user-avatar" style={{ overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--surface-secondary)' }}>
+            {user?.user_metadata?.avatar_url ? (
+              <img 
+                src={user.user_metadata.avatar_url} 
+                alt="Avatar" 
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+              />
+            ) : (
+              <User size={18} />
+            )}
           </div>
-          <span className="user-name" style={{ fontSize: '0.9rem', fontWeight: 600 }}>Sair</span>
+          <span className="user-name" style={{ fontSize: '0.9rem', fontWeight: 600 }}>
+            {user?.user_metadata?.displayName || 'Sair'}
+          </span>
         </div>
       </div>
     </header>

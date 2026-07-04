@@ -16,7 +16,22 @@ const CATEGORIES = [
   'Outros'
 ];
 
-export const AddTransactionModal = ({ isOpen, onClose, onSave, editingTransaction, accounts, cards, defaultAccountId }) => {
+export const AddTransactionModal = ({ isOpen, onClose, onSave, editingTransaction, accounts, cards, defaultAccountId, customCategories = [] }) => {
+  const allCategories = [
+    'Alimentação',
+    'Transporte',
+    'Moradia',
+    'Lazer',
+    'Assinaturas',
+    'Saúde',
+    'Educação',
+    'Vestuário',
+    'Beleza',
+    'Rendimentos',
+    'Outros',
+    ...customCategories
+  ];
+
   // Estados do Formulário
   const [type, setType] = useState('expense'); // 'expense', 'income' ou 'transfer'
   const [amount, setAmount] = useState('');
@@ -423,7 +438,7 @@ export const AddTransactionModal = ({ isOpen, onClose, onSave, editingTransactio
                       onChange={(e) => setCategory(e.target.value)}
                       style={{ paddingLeft: '2.5rem' }}
                     >
-                      {CATEGORIES.map(cat => (
+                      {allCategories.map(cat => (
                         <option key={cat} value={cat}>{cat}</option>
                       ))}
                     </select>

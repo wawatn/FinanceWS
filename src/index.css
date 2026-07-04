@@ -854,3 +854,21 @@ tr:hover td {
   }
 }
 
+/* Efeitos de Hover para Perfil e Metas */
+.avatar-upload-hover {
+  transition: all 0.3s ease;
+}
+.avatar-upload-hover:hover {
+  border-color: var(--primary) !important;
+  transform: scale(1.03);
+}
+
+.card-meta-add-hover {
+  transition: all 0.25s ease-in-out;
+}
+.card-meta-add-hover:hover {
+  border-color: var(--primary) !important;
+  background-color: rgba(0, 230, 118, 0.03) !important;
+  transform: translateY(-2px);
+}
+

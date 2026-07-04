@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { supabase } from '../utils/supabaseClient';
-import { PiggyBank, Mail, Lock, LogIn, UserPlus } from 'lucide-react';
+import { PiggyBank, Mail, Lock, LogIn, UserPlus, ArrowLeft } from 'lucide-react';
 import { Card } from '../components/UI/Card';
 
 export const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -16,7 +17,17 @@ export const Auth = () => {
     setLoading(true);
     setMessage({ text: '', type: '' });
 
-    if (isSignUp) {
+    if (isForgotPassword) {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin
+      });
+      if (error) {
+        setMessage({ text: `Erro ao enviar e-mail: ${error.message}`, type: 'error' });
+      } else {
+        setMessage({ text: 'E-mail de recuperação enviado! Verifique sua caixa de entrada e spam.', type: 'success' });
+        setEmail('');
+      }
+    } else if (isSignUp) {
       if (password !== confirmPassword) {
         setMessage({ text: 'As senhas não coincidem.', type: 'error' });
         setLoading(false);
@@ -33,7 +44,6 @@ export const Auth = () => {
         setMessage({ text: `Erro no cadastro: ${error.message}`, type: 'error' });
       } else {
         setMessage({ text: 'Cadastro realizado com sucesso! Verifique seu e-mail para confirmação se necessário.', type: 'success' });
-        // Limpar campos
         setEmail('');
         setPassword('');
         setConfirmPassword('');
@@ -89,7 +99,7 @@ export const Auth = () => {
             FinanceWS
           </h2>
           <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-            Controle financeiro pessoal inteligente na nuvem
+            {isForgotPassword ? 'Recuperação de Acesso' : 'Controle financeiro pessoal inteligente na nuvem'}
           </span>
         </div>
 
@@ -125,22 +135,45 @@ export const Auth = () => {
             </div>
           </div>
 
-          <div>
-            <label>Senha</label>
-            <div style={{ position: 'relative' }}>
-              <Lock size={16} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
-              <input 
-                type="password" 
-                required 
-                placeholder="Sua senha secreta"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                style={{ paddingLeft: '2.5rem' }}
-              />
+          {!isForgotPassword && (
+            <div>
+              <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>Senha</span>
+                {!isSignUp && (
+                  <button 
+                    type="button" 
+                    onClick={() => {
+                      setIsForgotPassword(true);
+                      setMessage({ text: '', type: '' });
+                    }}
+                    style={{ 
+                      background: 'none', 
+                      border: 'none', 
+                      color: 'var(--primary)', 
+                      fontSize: '0.75rem', 
+                      cursor: 'pointer',
+                      padding: 0 
+                    }}
+                  >
+                    Esqueceu a senha?
+                  </button>
+                )}
+              </label>
+              <div style={{ position: 'relative' }}>
+                <Lock size={16} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+                <input 
+                  type="password" 
+                  required 
+                  placeholder="Sua senha secreta"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  style={{ paddingLeft: '2.5rem' }}
+                />
+              </div>
             </div>
-          </div>
+          )}
 
-          {isSignUp && (
+          {isSignUp && !isForgotPassword && (
             <div>
               <label>Confirmar Senha</label>
               <div style={{ position: 'relative' }}>
@@ -163,32 +196,63 @@ export const Auth = () => {
             style={{ width: '100%', justifyContent: 'center', marginTop: '0.5rem', padding: '0.85rem' }}
             disabled={loading}
           >
-            {loading ? 'Processando...' : (isSignUp ? <UserPlus size={18} /> : <LogIn size={18} />)}
-            <span style={{ marginLeft: '0.5rem' }}>{isSignUp ? 'Cadastrar Minha Conta' : 'Entrar nas Finanças'}</span>
+            {loading ? 'Processando...' : (isForgotPassword ? null : (isSignUp ? <UserPlus size={18} /> : <LogIn size={18} />))}
+            <span style={{ marginLeft: '0.5rem' }}>
+              {isForgotPassword 
+                ? 'Enviar Link de Recuperação' 
+                : (isSignUp ? 'Cadastrar Minha Conta' : 'Entrar nas Finanças')}
+            </span>
           </button>
         </form>
 
         <div style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.85rem' }}>
-          <span style={{ color: 'var(--text-secondary)' }}>
-            {isSignUp ? 'Já tem uma conta?' : 'Não possui cadastro?'}
-          </span>{' '}
-          <button 
-            type="button" 
-            onClick={() => {
-              setIsSignUp(!isSignUp);
-              setMessage({ text: '', type: '' });
-            }}
-            style={{ 
-              background: 'none', 
-              border: 'none', 
-              color: 'var(--primary)', 
-              fontWeight: 600, 
-              cursor: 'pointer',
-              textDecoration: 'underline'
-            }}
-          >
-            {isSignUp ? 'Faça Login' : 'Cadastre-se de graça'}
-          </button>
+          {isForgotPassword ? (
+            <button 
+              type="button" 
+              onClick={() => {
+                setIsForgotPassword(false);
+                setIsSignUp(false);
+                setMessage({ text: '', type: '' });
+              }}
+              style={{ 
+                background: 'none', 
+                border: 'none', 
+                color: 'var(--primary)', 
+                fontWeight: 600, 
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.25rem',
+                textDecoration: 'underline'
+              }}
+            >
+              <ArrowLeft size={14} />
+              Voltar para o Login
+            </button>
+          ) : (
+            <>
+              <span style={{ color: 'var(--text-secondary)' }}>
+                {isSignUp ? 'Já tem uma conta?' : 'Não possui cadastro?'}
+              </span>{' '}
+              <button 
+                type="button" 
+                onClick={() => {
+                  setIsSignUp(!isSignUp);
+                  setMessage({ text: '', type: '' });
+                }}
+                style={{ 
+                  background: 'none', 
+                  border: 'none', 
+                  color: 'var(--primary)', 
+                  fontWeight: 600, 
+                  cursor: 'pointer',
+                  textDecoration: 'underline'
+                }}
+              >
+                {isSignUp ? 'Faça Login' : 'Cadastre-se de graça'}
+              </button>
+            </>
+          )}
         </div>
       </Card>
     </div>

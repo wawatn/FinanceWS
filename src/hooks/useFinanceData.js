@@ -870,6 +870,58 @@ export const useFinanceData = () => {
     }
   };
 
+  // 11. PERFIL E SEGURANÇA
+  const updateProfile = async (profileData) => {
+    const { data, error } = await supabase.auth.updateUser({
+      data: profileData
+    });
+    if (error) throw error;
+    setUser(data.user);
+    return data.user;
+  };
+
+  const updatePassword = async (newPassword) => {
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword
+    });
+    if (error) throw error;
+  };
+
+  // 12. CATEGORIAS CUSTOMIZADAS
+  const [customCategories, setCustomCategories] = useState([]);
+
+  useEffect(() => {
+    if (activeSpaceUserId) {
+      const stored = localStorage.getItem('mobills_custom_categories_' + activeSpaceUserId);
+      setCustomCategories(stored ? JSON.parse(stored) : []);
+    } else {
+      setCustomCategories([]);
+    }
+  }, [activeSpaceUserId]);
+
+  const addCustomCategory = (newCatName) => {
+    if (!activeSpaceUserId) return;
+    const normalizedName = newCatName.trim();
+    if (!normalizedName) return;
+
+    if (customCategories.some(c => c.toLowerCase() === normalizedName.toLowerCase()) || 
+        ['alimentacao', 'transporte', 'moradia', 'lazer', 'assinaturas', 'saude', 'educacao', 'vestuario', 'beleza', 'rendimentos', 'outros'].includes(normalizedName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''))) {
+      alert('Esta categoria já existe (ou coincide com as categorias padrão).');
+      return;
+    }
+
+    const updated = [...customCategories, normalizedName];
+    setCustomCategories(updated);
+    localStorage.setItem('mobills_custom_categories_' + activeSpaceUserId, JSON.stringify(updated));
+  };
+
+  const deleteCustomCategory = (catName) => {
+    if (!activeSpaceUserId) return;
+    const updated = customCategories.filter(c => c !== catName);
+    setCustomCategories(updated);
+    localStorage.setItem('mobills_custom_categories_' + activeSpaceUserId, JSON.stringify(updated));
+  };
+
   return {
     user,
     session,
@@ -885,6 +937,7 @@ export const useFinanceData = () => {
     activeSpaceOwnerEmail,
     sharedSpaces,
     mySharedUsers,
+    customCategories,
     toggleTheme,
     addTransaction,
     editTransaction,
@@ -905,5 +958,9 @@ export const useFinanceData = () => {
     inviteUser,
     removeInvite,
     switchSpace,
+    addCustomCategory,
+    deleteCustomCategory,
+    updateProfile,
+    updatePassword,
   };
 };

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useFinanceData } from './hooks/useFinanceData';
 import { supabase } from './utils/supabaseClient';
 import { Navigation } from './components/Navigation';
@@ -16,6 +16,7 @@ import { PiggyBank } from 'lucide-react';
 import { AddTransactionModal } from './components/Modals/AddTransactionModal';
 import { OfxImportModal } from './components/Modals/OfxImportModal';
 import { AddAccountCardModal } from './components/Modals/AddAccountCardModal';
+import { ResetPasswordModal } from './components/Modals/ResetPasswordModal';
 
 function App() {
   const {
@@ -32,6 +33,7 @@ function App() {
     activeSpaceOwnerEmail,
     sharedSpaces,
     mySharedUsers,
+    customCategories,
     toggleTheme,
     addTransaction,
     editTransaction,
@@ -52,19 +54,32 @@ function App() {
     inviteUser,
     removeInvite,
     switchSpace,
+    addCustomCategory,
+    deleteCustomCategory,
+    updateProfile,
+    updatePassword,
   } = useFinanceData();
 
   const [activePage, setActivePage] = useState('dashboard');
+  const [isResetPasswordOpen, setIsResetPasswordOpen] = useState(false);
 
   // Controle de Modals
   const [isAddTxOpen, setIsAddTxOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState(null);
-
   const [isOfxOpen, setIsOfxOpen] = useState(false);
-
   const [isAddAccCardOpen, setIsAddAccCardOpen] = useState(false);
   const [accCardType, setAccCardType] = useState('account'); // 'account' ou 'card'
   const [editingAccCardItem, setEditingAccCardItem] = useState(null);
+
+  // Escutar evento de redefinição de senha do Supabase
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsResetPasswordOpen(true);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   // Handlers para Transação
   const handleOpenAddTx = () => {
@@ -85,36 +100,37 @@ function App() {
     }
   };
 
-  // Handlers para Contas e Cartões
   const handleOpenAddAccCard = (type, item = null) => {
     setAccCardType(type);
     setEditingAccCardItem(item);
     setIsAddAccCardOpen(true);
   };
 
-  const handleSaveAccCard = (itemData) => {
-    if (accCardType === 'account') {
-      if (editingAccCardItem) {
-        editAccount(editingAccCardItem.id, itemData);
+  const handleSaveAccCard = (data) => {
+    if (editingAccCardItem) {
+      if (accCardType === 'account') {
+        editAccount(editingAccCardItem.id, data);
       } else {
-        addAccount(itemData);
+        editCard(editingAccCardItem.id, data);
       }
-    } else if (accCardType === 'card') {
-      if (editingAccCardItem) {
-        editCard(editingAccCardItem.id, itemData);
+    } else {
+      if (accCardType === 'account') {
+        addAccount(data);
       } else {
-        addCard(itemData);
+        addCard(data);
       }
     }
   };
 
   const handleLogout = async () => {
-    if (window.confirm('Deseja realmente sair da sua conta?')) {
-      await supabase.auth.signOut();
-    }
+    await supabase.auth.signOut();
   };
 
-  // Carregamento de Sessão Inicial
+  // Se não estiver logado, exibe tela de autenticação
+  if (!loading && !user) {
+    return <Auth />;
+  }
+
   if (loading) {
     return (
       <div 
@@ -125,35 +141,17 @@ function App() {
           justifyContent: 'center', 
           minHeight: '100vh',
           backgroundColor: '#090d16',
-          color: '#ffffff',
-          gap: '1rem'
+          color: 'var(--text)'
         }}
       >
-        <div 
-          className="pulse-red"
-          style={{ 
-            background: 'linear-gradient(135deg, var(--primary), var(--primary-hover))', 
-            color: '#000', 
-            padding: '1rem', 
-            borderRadius: '20px',
-            animation: 'pulse-red-anim 2s infinite'
-          }}
-        >
-          <PiggyBank size={40} />
+        <div style={{ animation: 'pulse 1.5s infinite', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+          <PiggyBank size={48} style={{ color: 'var(--primary)' }} />
+          <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Carregando dados na nuvem...</span>
         </div>
-        <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
-          Carregando suas finanças...
-        </span>
       </div>
     );
   }
 
-  // Redirecionar se não logado
-  if (!user) {
-    return <Auth />;
-  }
-
-  // Renderizar página ativa
   const renderActivePage = () => {
     switch (activePage) {
       case 'dashboard':
@@ -162,7 +160,7 @@ function App() {
             accounts={accounts}
             cards={cards}
             transactions={transactions}
-            onAddTransaction={addTransaction}
+            onAddTransaction={handleOpenAddTx}
             onEditTransaction={handleOpenEditTx}
             onDeleteTransaction={deleteTransaction}
             onToggleStatus={toggleTransactionStatus}
@@ -174,9 +172,11 @@ function App() {
         return (
           <Transactions
             transactions={transactions}
+            deletedTransactions={deletedTransactions}
             accounts={accounts}
             cards={cards}
-            deletedTransactions={deletedTransactions}
+            defaultAccountId={defaultAccountId}
+            customCategories={customCategories}
             onAddClick={handleOpenAddTx}
             onEditClick={handleOpenEditTx}
             onDeleteClick={deleteTransaction}
@@ -191,6 +191,9 @@ function App() {
           <Planning
             budgets={budgets}
             transactions={transactions}
+            customCategories={customCategories}
+            addCustomCategory={addCustomCategory}
+            deleteCustomCategory={deleteCustomCategory}
             onUpdateBudget={updateBudget}
           />
         );
@@ -222,6 +225,8 @@ function App() {
             toggleTheme={toggleTheme}
             onLogout={handleLogout}
             onNavigateToPage={setActivePage}
+            updateProfile={updateProfile}
+            updatePassword={updatePassword}
           />
         );
       default:
@@ -264,6 +269,7 @@ function App() {
         accounts={accounts}
         cards={cards}
         defaultAccountId={defaultAccountId}
+        customCategories={customCategories}
       />
 
       {/* Modal: Importação e Conciliação OFX */}
@@ -283,6 +289,12 @@ function App() {
         type={accCardType}
         editingItem={editingAccCardItem}
         onSave={handleSaveAccCard}
+      />
+
+      {/* Modal: Redefinição de Senha via Link de E-mail */}
+      <ResetPasswordModal
+        isOpen={isResetPasswordOpen}
+        onClose={() => setIsResetPasswordOpen(false)}
       />
     </div>
   );
