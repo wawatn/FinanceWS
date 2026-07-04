@@ -119,7 +119,11 @@ export const Transactions = ({
 
   // Filtragem
   const filteredTransactions = transactions.filter((tx) => {
+    if (!tx || !tx.date) return false;
+    
     const txDate = new Date(tx.date + 'T00:00:00');
+    if (isNaN(txDate.getTime())) return false;
+    
     const sameMonth = txDate.getMonth() === currentDate.getMonth() && 
                       txDate.getFullYear() === currentDate.getFullYear();
     
@@ -526,7 +530,7 @@ export const Transactions = ({
                   {group.items.map((tx) => {
                     const isIncome = tx.type === 'income';
                     const isTransfer = tx.type === 'transfer';
-                    const iconColor = CATEGORY_COLORS[tx.category] || 'var(--primary)';
+                    const iconColor = CATEGORY_COLORS[tx.category] || '#78909c';
                     
                     return (
                       <div 
