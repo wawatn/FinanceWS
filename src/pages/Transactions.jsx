@@ -125,7 +125,7 @@ export const Transactions = ({
     
     if (!sameMonth) return false;
 
-    const matchesSearch = tx.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (tx.description || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'Todos' || tx.category === selectedCategory;
     const matchesStatus = selectedStatus === 'Todos' || tx.status === selectedStatus;
 

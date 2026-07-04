@@ -171,7 +171,8 @@ export const useFinanceData = () => {
         type: tx.type,
         status: tx.status,
         installmentNumber: tx.installment_number,
-        totalInstallments: tx.total_installments
+        totalInstallments: tx.total_installments,
+        isFixed: tx.is_fixed
       }));
       setTransactions(formattedTxs);
     } catch (err) {
