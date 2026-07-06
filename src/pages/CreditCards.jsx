@@ -185,6 +185,7 @@ export const CreditCards = ({
     }
 
     const availableLimit = card.limit - invoiceTotal;
+    const invoiceMonthName = MONTHS_BR[activeCycle.end.getMonth()];
 
     return {
       ...card,
@@ -196,6 +197,7 @@ export const CreditCards = ({
       invoiceTotal,
       availableLimit,
       isClosed,
+      invoiceMonthName,
       cycleStart: activeCycle.start,
       cycleEnd: activeCycle.end
     };
@@ -523,6 +525,9 @@ export const CreditCards = ({
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingLeft: '0.5rem' }}>
                   <div>
                     <strong style={{ fontSize: '1rem', display: 'block' }}>{card.name}</strong>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600, display: 'block', marginTop: '0.15rem' }}>
+                      Fatura de {card.invoiceMonthName}
+                    </span>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.2rem', marginTop: '0.2rem' }}>
                       <Calendar size={12} /> Fecha dia {card.closingDay} • Vence dia {card.dueDay}
                     </span>
@@ -602,8 +607,11 @@ export const CreditCards = ({
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingLeft: '0.5rem' }}>
                   <div>
                     <strong style={{ fontSize: '1rem', display: 'block' }}>{card.name}</strong>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--expense)', fontWeight: 600, display: 'block', marginTop: '0.15rem' }}>
+                      Fatura de {card.invoiceMonthName} (Fechada)
+                    </span>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.2rem', marginTop: '0.2rem' }}>
-                      <Calendar size={12} /> Fecha dia {card.closingDay} • Vence dia {card.dueDay} (Fechada)
+                      <Calendar size={12} /> Fecha dia {card.closingDay} • Vence dia {card.dueDay}
                     </span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
