@@ -138,7 +138,7 @@ export const CreditCards = ({
   const today = new Date();
   const currentDay = today.getDate();
 
-  // 1. Processar dados de cada cartão
+  // 1. Processar dados de cada cartão usando ciclos reais baseados no calendário
   const cardsWithData = cards.map(card => {
     const [colorPart, brandPart, accountPart] = (card.color || '').split('|');
     const brand = brandPart || 'mastercard';
@@ -148,44 +148,71 @@ export const CreditCards = ({
     const closingDay = card.closing_day || card.closingDay || 5;
     const dueDay = card.due_day || card.dueDay || 10;
 
-    // A. Calcular ciclo para o mês atual
-    const currentCycle = getCardCycleRange(card, today.getFullYear(), today.getMonth());
-    const txsInCurrentCycle = transactions.filter(tx => {
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth(); // 0-11
+    
+    // Determinar as datas dos ciclos ABERTO e FECHADO com base no dia de hoje
+    let openEnd, openStart, openMonthName;
+    let closedEnd, closedStart, closedMonthName;
+    
+    if (currentDay <= closingDay) {
+      // O fechamento do mês atual ainda não passou.
+      // O ciclo aberto atual termina no fechamento deste mês.
+      openEnd = new Date(currentYear, currentMonth, closingDay, 23, 59, 59);
+      openStart = new Date(currentYear, currentMonth - 1, closingDay + 1, 0, 0, 0);
+      openMonthName = MONTHS_BR[openEnd.getMonth()];
+      
+      // O ciclo fechado anterior terminou no mês passado
+      closedEnd = new Date(currentYear, currentMonth - 1, closingDay, 23, 59, 59);
+      closedStart = new Date(currentYear, currentMonth - 2, closingDay + 1, 0, 0, 0);
+      closedMonthName = MONTHS_BR[closedEnd.getMonth()];
+    } else {
+      // O fechamento do mês atual já passou.
+      // O ciclo aberto atual termina no fechamento do mês seguinte.
+      openEnd = new Date(currentYear, currentMonth + 1, closingDay, 23, 59, 59);
+      openStart = new Date(currentYear, currentMonth, closingDay + 1, 0, 0, 0);
+      openMonthName = MONTHS_BR[openEnd.getMonth()];
+      
+      // O ciclo fechado anterior terminou neste mês
+      closedEnd = new Date(currentYear, currentMonth, closingDay, 23, 59, 59);
+      closedStart = new Date(currentYear, currentMonth - 1, closingDay + 1, 0, 0, 0);
+      closedMonthName = MONTHS_BR[closedEnd.getMonth()];
+    }
+
+    // Calcular o total de compras no ciclo fechado
+    const txsInClosedCycle = transactions.filter(tx => {
       if (tx.cardId !== card.id) return false;
       const txDate = new Date(tx.date + 'T00:00:00');
-      return txDate >= currentCycle.start && txDate <= currentCycle.end;
+      return txDate >= closedStart && txDate <= closedEnd;
     });
-    const currentCycleTotal = txsInCurrentCycle.reduce((sum, tx) => sum + tx.amount, 0);
+    const closedCycleTotal = txsInClosedCycle.reduce((sum, tx) => sum + tx.amount, 0);
 
-    // B. Verificar se o fechamento já passou no mês atual e se a fatura foi paga
-    const isClosingPassed = currentDay > closingDay;
+    // Calcular o total de compras no ciclo aberto
+    const txsInOpenCycle = transactions.filter(tx => {
+      if (tx.cardId !== card.id) return false;
+      const txDate = new Date(tx.date + 'T00:00:00');
+      return txDate >= openStart && txDate <= openEnd;
+    });
+    const openCycleTotal = txsInOpenCycle.reduce((sum, tx) => sum + tx.amount, 0);
+
+    // Verificar se há pagamento da fatura fechada neste mês calendário
     const hasPayment = transactions.some(tx => 
       tx.type === 'expense' && 
       tx.description === `Pagamento Fatura - ${card.name}` && 
-      new Date(tx.date + 'T00:00:00').getMonth() === today.getMonth() && 
-      new Date(tx.date + 'T00:00:00').getFullYear() === today.getFullYear()
+      new Date(tx.date + 'T00:00:00').getMonth() === currentMonth && 
+      new Date(tx.date + 'T00:00:00').getFullYear() === currentYear
     );
 
-    // Se o fechamento passou, tem compras acumuladas e não foi paga, a fatura está FECHADA
-    const isClosed = isClosingPassed && currentCycleTotal > 0 && !hasPayment;
+    // A fatura é considerada "FECHADA" pendente se houver compras nela e não tiver sido paga
+    const isClosed = closedCycleTotal > 0 && !hasPayment;
 
-    // Determinar qual ciclo e total exibir no card da dashboard
-    let activeCycle = currentCycle;
-    let invoiceTotal = currentCycleTotal;
-
-    if (isClosingPassed && (currentCycleTotal === 0 || hasPayment)) {
-      // O fechamento passou, mas está paga ou vazia: mostrar o ciclo seguinte (Fatura Aberta ativa agora)
-      activeCycle = getCardCycleRange(card, today.getFullYear(), today.getMonth() + 1);
-      const txsInNextCycle = transactions.filter(tx => {
-        if (tx.cardId !== card.id) return false;
-        const txDate = new Date(tx.date + 'T00:00:00');
-        return txDate >= activeCycle.start && txDate <= activeCycle.end;
-      });
-      invoiceTotal = txsInNextCycle.reduce((sum, tx) => sum + tx.amount, 0);
-    }
-
+    // Se estiver fechada e pendente, o visor do card mostra os dados do ciclo fechado (para pagamento)
+    // Se estiver paga ou se for zero, o visor mostra os dados do ciclo aberto (compras atuais)
+    const activeCycleStart = isClosed ? closedStart : openStart;
+    const activeCycleEnd = isClosed ? closedEnd : openEnd;
+    const invoiceTotal = isClosed ? closedCycleTotal : openCycleTotal;
+    const invoiceMonthName = isClosed ? closedMonthName : openMonthName;
     const availableLimit = card.limit - invoiceTotal;
-    const invoiceMonthName = MONTHS_BR[activeCycle.end.getMonth()];
 
     return {
       ...card,
@@ -198,8 +225,8 @@ export const CreditCards = ({
       availableLimit,
       isClosed,
       invoiceMonthName,
-      cycleStart: activeCycle.start,
-      cycleEnd: activeCycle.end
+      cycleStart: activeCycleStart,
+      cycleEnd: activeCycleEnd
     };
   });
 
