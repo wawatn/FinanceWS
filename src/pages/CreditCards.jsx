@@ -396,7 +396,7 @@ export const CreditCards = ({
   const currentDay = today.getDate();
 
   // 1. Processar dados de cada cartão usando ciclos reais baseados no calendário
-  const cardsWithData = cards.map(card => {
+  const processedCards = cards.map(card => {
     const [colorPart, brandPart, accountPart] = (card.color || '').split('|');
     const brand = brandPart || 'mastercard';
     const linkedAccount = accountPart || 'none';
@@ -436,7 +436,7 @@ export const CreditCards = ({
       closedMonthName = MONTHS_BR[closedEnd.getMonth()];
     }
 
-    // Calcular o total de compras no ciclo fechado
+    // A. Ciclo Fechado
     const txsInClosedCycle = transactions.filter(tx => {
       if (tx.cardId !== card.id) return false;
       const txDate = new Date(tx.date + 'T00:00:00');
@@ -444,7 +444,14 @@ export const CreditCards = ({
     });
     const closedCycleTotal = txsInClosedCycle.reduce((sum, tx) => sum + tx.amount, 0);
 
-    // Calcular o total de compras no ciclo aberto
+    // Vencimento da fatura fechada
+    let closedDueMonth = closedEnd.getMonth();
+    if (dueDay <= closingDay) {
+      closedDueMonth = closedEnd.getMonth() + 1;
+    }
+    const closedDueDate = new Date(closedEnd.getFullYear(), closedDueMonth, dueDay);
+
+    // B. Ciclo Aberto
     const txsInOpenCycle = transactions.filter(tx => {
       if (tx.cardId !== card.id) return false;
       const txDate = new Date(tx.date + 'T00:00:00');
@@ -452,7 +459,14 @@ export const CreditCards = ({
     });
     const openCycleTotal = txsInOpenCycle.reduce((sum, tx) => sum + tx.amount, 0);
 
-    // Verificar se há pagamento da fatura fechada neste mês calendário
+    // Vencimento da fatura aberta
+    let openDueMonth = openEnd.getMonth();
+    if (dueDay <= closingDay) {
+      openDueMonth = openEnd.getMonth() + 1;
+    }
+    const openDueDate = new Date(openEnd.getFullYear(), openDueMonth, dueDay);
+
+    // Verificar se há pagamento da fatura fechada neste mês
     const hasPayment = transactions.some(tx => 
       tx.type === 'expense' && 
       tx.description === `Pagamento Fatura - ${card.name}` && 
@@ -460,35 +474,75 @@ export const CreditCards = ({
       new Date(tx.date + 'T00:00:00').getFullYear() === currentYear
     );
 
-    // A fatura é considerada "FECHADA" pendente se houver compras nela e não tiver sido paga
-    const isClosed = closedCycleTotal > 0 && !hasPayment;
-
-    // Se estiver fechada e pendente, o visor do card mostra os dados do ciclo fechado (para pagamento)
-    // Se estiver paga ou se for zero, o visor mostra os dados do ciclo aberto (compras atuais)
-    const activeCycleStart = isClosed ? closedStart : openStart;
-    const activeCycleEnd = isClosed ? closedEnd : openEnd;
-    const invoiceTotal = isClosed ? closedCycleTotal : openCycleTotal;
-    const invoiceMonthName = isClosed ? closedMonthName : openMonthName;
-    const availableLimit = card.limit - invoiceTotal;
+    // A fatura fechada está ativa se tiver compras e não foi paga
+    const hasPendingClosed = closedCycleTotal > 0 && !hasPayment;
 
     return {
-      ...card,
+      cardRaw: card,
       brand,
       linkedAccount,
       cardColor,
       closingDay,
       dueDay,
-      invoiceTotal,
-      availableLimit,
-      isClosed,
-      invoiceMonthName,
-      cycleStart: activeCycleStart,
-      cycleEnd: activeCycleEnd
+      hasPendingClosed,
+      closedCycle: {
+        total: closedCycleTotal,
+        start: closedStart,
+        end: closedEnd,
+        due: closedDueDate,
+        monthName: closedMonthName
+      },
+      openCycle: {
+        total: openCycleTotal,
+        start: openStart,
+        end: openEnd,
+        due: openDueDate,
+        monthName: openMonthName
+      }
     };
   });
 
-  const openCards = cardsWithData.filter(c => !c.isClosed);
-  const closedCards = cardsWithData.filter(c => c.isClosed);
+  // 2. Faturas Abertas: Mostra o ciclo aberto atual de todos os cartões
+  const openCards = processedCards.map(c => {
+    const availableLimit = c.cardRaw.limit - c.openCycle.total;
+    return {
+      ...c.cardRaw,
+      brand: c.brand,
+      linkedAccount: c.linkedAccount,
+      cardColor: c.cardColor,
+      closingDay: c.closingDay,
+      dueDay: c.dueDay,
+      invoiceTotal: c.openCycle.total,
+      availableLimit,
+      isClosed: false,
+      invoiceMonthName: c.openCycle.monthName,
+      cycleStart: c.openCycle.start,
+      cycleEnd: c.openCycle.end,
+      dueDate: c.openCycle.due
+    };
+  });
+
+  // 3. Faturas Fechadas: Mostra apenas os cartões com faturas fechadas pendentes
+  const closedCards = processedCards
+    .filter(c => c.hasPendingClosed)
+    .map(c => {
+      const availableLimit = c.cardRaw.limit - c.closedCycle.total;
+      return {
+        ...c.cardRaw,
+        brand: c.brand,
+        linkedAccount: c.linkedAccount,
+        cardColor: c.cardColor,
+        closingDay: c.closingDay,
+        dueDay: c.dueDay,
+        invoiceTotal: c.closedCycle.total,
+        availableLimit,
+        isClosed: true,
+        invoiceMonthName: c.closedCycle.monthName,
+        cycleStart: c.closedCycle.start,
+        cycleEnd: c.closedCycle.end,
+        dueDate: c.closedCycle.due
+      };
+    });
 
   const handlePrevMonth = () => {
     if (detailMonth === 0) {
@@ -901,6 +955,12 @@ export const CreditCards = ({
               formattedDueDate = `${d.getDate()} de ${MONTHS_BR[d.getMonth()]} de ${d.getFullYear()}`;
             }
 
+            // Comparação de vencimento real
+            const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            const cardDue = card.dueDate ? new Date(card.dueDate) : null;
+            const dueDateOnly = cardDue ? new Date(cardDue.getFullYear(), cardDue.getMonth(), cardDue.getDate()) : null;
+            const isOverdue = dueDateOnly ? todayDateOnly > dueDateOnly : false;
+
             return (
               <div 
                 key={card.id} 
@@ -962,15 +1022,31 @@ export const CreditCards = ({
                     </>
                   ) : (
                     <>
-                      <span className="mobills-card-subtitle closed" style={{ color: '#ff9800' }}>Fatura vencida</span>
-                      <div className="mobills-card-row">
-                        <span className="mobills-card-row-label">Valor total</span>
-                        <span className="mobills-card-row-value-accent">R$ {new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2 }).format(card.invoiceTotal)}</span>
-                      </div>
-                      <div className="mobills-card-row">
-                        <span className="mobills-card-row-label">Venceu em</span>
-                        <span className="mobills-card-row-value-bold" style={{ fontSize: '0.78rem' }}>{formattedDueDate}</span>
-                      </div>
+                      {isOverdue ? (
+                        <>
+                          <span className="mobills-card-subtitle closed" style={{ color: '#ff5252' }}>Fatura vencida</span>
+                          <div className="mobills-card-row">
+                            <span className="mobills-card-row-label">Valor total</span>
+                            <span className="mobills-card-row-value-accent" style={{ color: '#ff5252' }}>R$ {new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2 }).format(card.invoiceTotal)}</span>
+                          </div>
+                          <div className="mobills-card-row">
+                            <span className="mobills-card-row-label">Venceu em</span>
+                            <span className="mobills-card-row-value-bold" style={{ fontSize: '0.78rem' }}>{formattedDueDate}</span>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <span className="mobills-card-subtitle closed" style={{ color: '#ff9800' }}>Fatura fechada</span>
+                          <div className="mobills-card-row">
+                            <span className="mobills-card-row-label">Valor total</span>
+                            <span className="mobills-card-row-value-accent" style={{ color: '#ff9800' }}>R$ {new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2 }).format(card.invoiceTotal)}</span>
+                          </div>
+                          <div className="mobills-card-row">
+                            <span className="mobills-card-row-label">Vence em</span>
+                            <span className="mobills-card-row-value-bold" style={{ fontSize: '0.78rem' }}>{formattedDueDate}</span>
+                          </div>
+                        </>
+                      )}
                     </>
                   )}
                   
