@@ -269,6 +269,151 @@ const MOBILLS_STYLES = `
     align-items: center;
     justify-content: center;
   }
+  
+  @media (max-width: 768px) {
+    .mobills-page-header {
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+    .mobills-title {
+      font-size: 1.4rem;
+      text-align: center;
+    }
+    .mobills-tab-container {
+      width: 100%;
+      max-width: 320px;
+      margin: 0 auto;
+      display: flex;
+    }
+    .mobills-tab-btn {
+      flex: 1;
+      text-align: center;
+      padding: 0.6rem 0;
+      text-transform: uppercase;
+      font-size: 0.8rem;
+    }
+    
+    .mobills-layout {
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+
+    .mobills-summary-stack {
+      order: -1;
+      background-color: transparent;
+      border: none;
+      box-shadow: none;
+      gap: 0.75rem;
+      align-items: center;
+      text-align: center;
+    }
+    
+    .mobills-summary-stack .mobills-summary-card:nth-of-type(1) {
+      background: none;
+      border: none;
+      padding: 0;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .mobills-summary-stack .mobills-summary-card:nth-of-type(1) .mobills-summary-card-icon-circle {
+      display: none;
+    }
+    .mobills-summary-stack .mobills-summary-card:nth-of-type(1) .mobills-summary-card-label {
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+      margin-bottom: 0.25rem;
+    }
+    .mobills-summary-stack .mobills-summary-card:nth-of-type(1) .mobills-summary-card-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .mobills-summary-stack-row-mobile {
+      display: flex;
+      justify-content: space-around;
+      width: 100%;
+      gap: 1rem;
+      margin-top: 0.5rem;
+      background-color: var(--surface-secondary);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 1rem 0.5rem;
+    }
+    .mobills-summary-card-mobile-half {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      justify-content: center;
+      text-align: left;
+    }
+    .mobills-summary-card-mobile-half-label {
+      font-size: 0.7rem;
+      color: var(--text-secondary);
+      display: block;
+    }
+    .mobills-summary-card-mobile-half-value {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .mobills-summary-card-mobile-half-icon {
+      color: #00bfa5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background-color: rgba(0, 191, 165, 0.1);
+    }
+    
+    .mobills-summary-stack .mobills-summary-card:nth-of-type(2),
+    .mobills-summary-stack .mobills-summary-card:nth-of-type(3) {
+      display: none;
+    }
+
+    .mobills-cards-grid {
+      grid-template-columns: 1fr;
+      gap: 1.25rem;
+    }
+    .mobills-cards-grid .mobills-add-card-btn {
+      display: none;
+    }
+
+    .mobills-mobile-fab {
+      position: fixed;
+      right: 1.5rem;
+      bottom: 2rem;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background-color: #00bfa5;
+      color: #ffffff;
+      border: none;
+      box-shadow: 0 4px 16px rgba(0, 191, 165, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      cursor: pointer;
+    }
+  }
+
+  @media (min-width: 769px) {
+    .mobills-mobile-fab {
+      display: none;
+    }
+    .mobills-summary-stack-row-mobile {
+      display: none;
+    }
+  }
 `;
 
 const MONTHS_BR = [
@@ -1082,8 +1227,9 @@ export const CreditCards = ({
                         e.stopPropagation();
                         onOpenAddCardTx(); // Abre o modal de despesa do cartão
                       }}
+                      style={{ color: '#00bfa5', fontWeight: 'bold' }}
                     >
-                      Adicionar Despesa
+                      ADICIONAR DESPESA
                     </button>
                   ) : (
                     <button 
@@ -1094,8 +1240,9 @@ export const CreditCards = ({
                         setPayingCardId(card.id);
                         setPaymentAccount(card.linkedAccount !== 'none' ? card.linkedAccount : 'none');
                       }}
+                      style={{ color: '#00bfa5', fontWeight: 'bold' }}
                     >
-                      Pagar Fatura
+                      CONFIRMAR PAGAMENTO
                     </button>
                   )}
                 </div>
@@ -1112,7 +1259,7 @@ export const CreditCards = ({
               <span className="mobills-summary-card-label">
                 {activeTab === 'open' ? 'O melhor cartão para comprar hoje é' : 'Sua próxima fatura vence em'}
               </span>
-              <strong className="mobills-summary-card-value" style={{ fontSize: '1rem' }}>
+              <strong className="mobills-summary-card-value" style={{ fontSize: '1.2rem' }}>
                 {activeTab === 'open' ? getBestCardForToday() : getNextDueDate()}
               </strong>
             </div>
@@ -1121,7 +1268,31 @@ export const CreditCards = ({
             </div>
           </div>
           
-          {/* Widget 2: Limite Disponível Total */}
+          {/* Lado a Lado compactos para celular */}
+          <div className="mobills-summary-stack-row-mobile">
+            {/* Limite Disponível */}
+            <div className="mobills-summary-card-mobile-half">
+              <div className="mobills-summary-card-mobile-half-icon">
+                <Wallet size={16} />
+              </div>
+              <div>
+                <span className="mobills-summary-card-mobile-half-label">Limite disponível</span>
+                <strong className="mobills-summary-card-mobile-half-value">{formatCurrency(totalAvailableLimit)}</strong>
+              </div>
+            </div>
+            {/* Valor Total */}
+            <div className="mobills-summary-card-mobile-half">
+              <div className="mobills-summary-card-mobile-half-icon">
+                <span style={{ fontWeight: 'bold', fontSize: '0.85rem' }}>$</span>
+              </div>
+              <div>
+                <span className="mobills-summary-card-mobile-half-label">Valor total</span>
+                <strong className="mobills-summary-card-mobile-half-value">{formatCurrency(totalInvoiceAmount)}</strong>
+              </div>
+            </div>
+          </div>
+
+          {/* Widget 2: Limite Disponível Total (Desktop) */}
           <div className="mobills-summary-card">
             <div className="mobills-summary-card-info">
               <span className="mobills-summary-card-label">Limite Disponível</span>
@@ -1134,7 +1305,7 @@ export const CreditCards = ({
             </div>
           </div>
           
-          {/* Widget 3: Valor Total de Faturas */}
+          {/* Widget 3: Valor Total de Faturas (Desktop) */}
           <div className="mobills-summary-card">
             <div className="mobills-summary-card-info">
               <span className="mobills-summary-card-label">Valor total</span>
@@ -1148,6 +1319,15 @@ export const CreditCards = ({
           </div>
         </div>
       </div>
+      
+      {/* FAB flutuante para celular */}
+      <button 
+        className="mobills-mobile-fab" 
+        onClick={() => onOpenAddModal('card')}
+        title="Novo cartão de crédito"
+      >
+        <Plus size={24} />
+      </button>
       
     </div>
   );
