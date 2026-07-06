@@ -180,6 +180,7 @@ export const AddCardTransactionModal = ({
       destinationAccountId: null,
       type: 'expense',
       status: 'confirmed',
+      isInstallment,
       recurrenceType: isInstallment ? 'installment' : 'single',
       installmentCount: isInstallment ? installmentsCount : 1,
       installmentType: 'divide' // divide o valor total pelas parcelas
@@ -308,14 +309,16 @@ export const AddCardTransactionModal = ({
 
             {/* Opções de Parcelamento */}
             <div style={{ padding: '0.85rem', borderRadius: '14px', border: '1px solid var(--border)', backgroundColor: 'var(--surface-secondary)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }} onClick={() => setIsInstallment(!isInstallment)}>
-                <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Compra Parcelada?</span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <label htmlFor="isInstallment" style={{ fontSize: '0.85rem', fontWeight: 600, margin: 0, cursor: 'pointer', flex: 1, userSelect: 'none' }}>
+                  Compra Parcelada?
+                </label>
                 <input
                   type="checkbox"
+                  id="isInstallment"
                   checked={isInstallment}
                   onChange={(e) => setIsInstallment(e.target.checked)}
-                  style={{ width: '18px', height: '18px', margin: 0 }}
-                  onClick={(e) => e.stopPropagation()}
+                  style={{ width: '18px', height: '18px', margin: 0, cursor: 'pointer' }}
                 />
               </div>
               {isInstallment && (
