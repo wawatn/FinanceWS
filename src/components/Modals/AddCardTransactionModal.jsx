@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Calendar, Tag, CreditCard, FileText, Check, Mic, MicOff, Sparkles, Send } from 'lucide-react';
 import { parseSmartInput } from '../../utils/smartParser';
 import { getCardCycleRange } from '../../pages/CreditCards';
+import { formatCurrency } from '../../utils/formatters';
 
 const MONTHS_LABEL = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
