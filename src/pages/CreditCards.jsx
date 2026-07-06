@@ -504,7 +504,8 @@ export const CreditCards = ({
 
   // 2. Faturas Abertas: Mostra o ciclo aberto atual de todos os cartões
   const openCards = processedCards.map(c => {
-    const availableLimit = c.cardRaw.limit - c.openCycle.total;
+    const totalOutstanding = c.openCycle.total + (c.hasPendingClosed ? c.closedCycle.total : 0);
+    const availableLimit = c.cardRaw.limit - totalOutstanding;
     return {
       ...c.cardRaw,
       brand: c.brand,
@@ -513,6 +514,7 @@ export const CreditCards = ({
       closingDay: c.closingDay,
       dueDay: c.dueDay,
       invoiceTotal: c.openCycle.total,
+      totalOutstanding,
       availableLimit,
       isClosed: false,
       invoiceMonthName: c.openCycle.monthName,
@@ -526,7 +528,8 @@ export const CreditCards = ({
   const closedCards = processedCards
     .filter(c => c.hasPendingClosed)
     .map(c => {
-      const availableLimit = c.cardRaw.limit - c.closedCycle.total;
+      const totalOutstanding = c.openCycle.total + c.closedCycle.total;
+      const availableLimit = c.cardRaw.limit - totalOutstanding;
       return {
         ...c.cardRaw,
         brand: c.brand,
@@ -535,6 +538,7 @@ export const CreditCards = ({
         closingDay: c.closingDay,
         dueDay: c.dueDay,
         invoiceTotal: c.closedCycle.total,
+        totalOutstanding,
         availableLimit,
         isClosed: true,
         invoiceMonthName: c.closedCycle.monthName,
@@ -935,7 +939,7 @@ export const CreditCards = ({
           
           {/* Lista de cartões */}
           {(activeTab === 'open' ? openCards : closedCards).map(card => {
-            const percentageUsed = card.limit > 0 ? (card.invoiceTotal / card.limit) * 100 : 0;
+            const percentageUsed = card.limit > 0 ? (card.totalOutstanding / card.limit) * 100 : 0;
             const end = card.cycleEnd ? new Date(card.cycleEnd) : null;
             
             // Formatador data fechamento
@@ -1053,7 +1057,7 @@ export const CreditCards = ({
                   {/* Barra de Progresso do Limite */}
                   <div className="mobills-card-progress-bar-container">
                     <div className="mobills-card-progress-bar-text">
-                      <span>R$ {new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2 }).format(card.invoiceTotal)} de R$ {new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2 }).format(card.limit)}</span>
+                      <span>R$ {new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2 }).format(card.totalOutstanding)} de R$ {new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2 }).format(card.limit)}</span>
                       <span>{percentageUsed.toFixed(2)}%</span>
                     </div>
                     <div className="mobills-card-progress-bar-track">
