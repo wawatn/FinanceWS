@@ -223,6 +223,7 @@ function App() {
             onDeleteTransaction={deleteTransaction}
             onOpenAddModal={handleOpenAddAccCard}
             onDeleteCard={deleteCard}
+            onOpenAddCardTx={() => setIsAddCardTxOpen(true)}
           />
         );
       case 'reports':

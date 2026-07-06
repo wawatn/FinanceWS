@@ -16,6 +16,261 @@ import {
   Edit2
 } from 'lucide-react';
 
+const MOBILLS_STYLES = `
+  .mobills-page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .mobills-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .mobills-tab-container {
+    display: flex;
+    background-color: var(--surface-secondary);
+    border-radius: 30px;
+    padding: 3px;
+    border: 1px solid var(--border);
+  }
+  .mobills-tab-btn {
+    border: none;
+    background: none;
+    color: var(--text-secondary);
+    padding: 0.5rem 1.25rem;
+    border-radius: 27px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s;
+  }
+  .mobills-tab-btn.active {
+    background-color: #00bfa5;
+    color: #ffffff;
+  }
+  .mobills-layout {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 2rem;
+  }
+  @media (max-width: 968px) {
+    .mobills-layout {
+      grid-template-columns: 1fr;
+    }
+  }
+  .mobills-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+    align-content: start;
+  }
+  .mobills-add-card-btn {
+    border: 2px dashed var(--border);
+    border-radius: 20px;
+    background-color: var(--surface);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    cursor: pointer;
+    min-height: 220px;
+    transition: all 0.2s;
+  }
+  .mobills-add-card-btn:hover {
+    border-color: #00bfa5;
+    background-color: var(--surface-secondary);
+  }
+  .mobills-add-card-icon-circle {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+  }
+  .mobills-add-card-btn:hover .mobills-add-card-icon-circle {
+    border-color: #00bfa5;
+    color: #00bfa5;
+  }
+  .mobills-add-card-text {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #00bfa5;
+  }
+  .mobills-card-widget {
+    background-color: var(--surface-secondary);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 1.25rem;
+    min-height: 220px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.25s;
+  }
+  .mobills-card-widget:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    border-color: rgba(0, 191, 165, 0.3);
+  }
+  .mobills-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+  .mobills-card-title-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .mobills-card-brand-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+  }
+  .mobills-card-name {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .mobills-card-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .mobills-card-subtitle {
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+  }
+  .mobills-card-subtitle.open {
+    color: var(--text-secondary);
+  }
+  .mobills-card-subtitle.closed {
+    color: #ff9800;
+  }
+  .mobills-card-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.825rem;
+  }
+  .mobills-card-row-label {
+    color: var(--text-secondary);
+  }
+  .mobills-card-row-value-accent {
+    font-weight: 700;
+    color: #ff5252;
+    font-size: 0.9rem;
+  }
+  .mobills-card-row-value-bold {
+    font-weight: 700;
+    color: var(--text);
+  }
+  .mobills-card-progress-bar-container {
+    margin-top: auto;
+    padding-top: 0.5rem;
+  }
+  .mobills-card-progress-bar-text {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.25rem;
+  }
+  .mobills-card-progress-bar-track {
+    height: 6px;
+    background-color: var(--surface);
+    border-radius: 3px;
+    overflow: hidden;
+    display: flex;
+  }
+  .mobills-card-progress-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s;
+  }
+  .mobills-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border);
+  }
+  .mobills-card-footer-limit {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+  }
+  .mobills-card-action-btn {
+    background: none;
+    border: none;
+    color: #00bfa5;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    transition: background 0.2s;
+  }
+  .mobills-card-action-btn:hover {
+    background-color: rgba(0, 191, 165, 0.08);
+  }
+  .mobills-summary-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .mobills-summary-card {
+    background-color: var(--surface-secondary);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 1rem 1.25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .mobills-summary-card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+  .mobills-summary-card-label {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+  }
+  .mobills-summary-card-value {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .mobills-summary-card-icon-circle {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background-color: rgba(0, 191, 165, 0.1);
+    color: #00bfa5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+`;
+
 const MONTHS_BR = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
@@ -123,9 +378,11 @@ export const CreditCards = ({
   onAddTransaction,
   onDeleteTransaction,
   onOpenAddModal,
-  onDeleteCard
+  onDeleteCard,
+  onOpenAddCardTx
 }) => {
   const [selectedCard, setSelectedCard] = useState(null);
+  const [activeTab, setActiveTab] = useState('open'); // 'open' ou 'closed'
   
   // Controle de Mês para Visualização Detalhada
   const [detailMonth, setDetailMonth] = useState(new Date().getMonth());
@@ -516,184 +773,302 @@ export const CreditCards = ({
     );
   }
 
-  // RENDERIZAÇÃO 2: LISTAGEM GERAL DE CARTÕES
+  // Roteamento e dados da listagem da direita
+  const getBestCardForToday = () => {
+    if (openCards.length === 0) return 'Nenhum';
+    let bestCard = openCards[0];
+    let maxDays = -1;
+    
+    for (const card of openCards) {
+      const closingDay = card.closingDay;
+      let daysLeft = closingDay - currentDay;
+      if (daysLeft < 0) {
+        const nextMonthDate = new Date(today.getFullYear(), today.getMonth() + 1, closingDay);
+        daysLeft = Math.round((nextMonthDate - today) / (1000 * 60 * 60 * 24));
+      }
+      if (daysLeft > maxDays) {
+        maxDays = daysLeft;
+        bestCard = card;
+      }
+    }
+    return bestCard.name;
+  };
+
+  const getNextDueDate = () => {
+    if (closedCards.length === 0) return 'Nenhuma pendente';
+    const sorted = [...closedCards].sort((a, b) => new Date(a.cycleEnd) - new Date(b.cycleEnd));
+    const card = sorted[0];
+    if (!card.cycleEnd) return '';
+    
+    // Calcula vencimento
+    const closingDay = card.closing_day || card.closingDay || 5;
+    const dueDay = card.due_day || card.dueDay || 10;
+    const end = new Date(card.cycleEnd);
+    let dueMonth = end.getMonth();
+    if (dueDay <= closingDay) {
+      dueMonth = end.getMonth() + 1;
+    }
+    const d = new Date(end.getFullYear(), dueMonth, dueDay);
+    return `${d.getDate()} de ${MONTHS_BR[d.getMonth()]} de ${d.getFullYear()}`;
+  };
+
+  const totalAvailableLimit = (activeTab === 'open' ? openCards : closedCards)
+    .reduce((sum, c) => sum + c.availableLimit, 0);
+
+  const totalInvoiceAmount = (activeTab === 'open' ? openCards : closedCards)
+    .reduce((sum, c) => sum + c.invoiceTotal, 0);
+
+  // RENDERIZAÇÃO 2: LISTAGEM GERAL DE CARTÕES (CLONE MOBILLS)
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <style dangerouslySetInnerHTML={{ __html: MOBILLS_STYLES }} />
       
-      {/* 1. SEÇÃO: FATURAS ABERTAS */}
-      <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem' }}>
-          <h3 style={{ fontSize: '1.2rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <CreditCard className="text-income" size={20} />
-            Faturas Abertas ({openCards.length})
-          </h3>
+      {/* Cabeçalho superior */}
+      <div className="mobills-page-header">
+        <h2 className="mobills-title">Cartões de crédito</h2>
+        
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+          {/* Segmented Control */}
+          <div className="mobills-tab-container">
+            <button 
+              className={`mobills-tab-btn ${activeTab === 'open' ? 'active' : ''}`}
+              onClick={() => setActiveTab('open')}
+            >
+              Faturas abertas
+            </button>
+            <button 
+              className={`mobills-tab-btn ${activeTab === 'closed' ? 'active' : ''}`}
+              onClick={() => setActiveTab('closed')}
+            >
+              Faturas fechadas
+            </button>
+          </div>
+          
+          {/* Botão Novo Cartão */}
           <button 
-            className="btn btn-secondary" 
             onClick={() => onOpenAddModal('card')}
-            style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}
+            style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '50%',
+              backgroundColor: 'rgba(0, 191, 165, 0.1)',
+              color: '#00bfa5',
+              border: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              fontSize: '1.25rem',
+              fontWeight: 'bold',
+              transition: 'background 0.2s'
+            }}
+            title="Novo cartão de crédito"
           >
-            <Plus size={16} />
-            <span>Novo Cartão</span>
+            +
           </button>
         </div>
+      </div>
+      
+      {/* Layout Grid principal */}
+      <div className="mobills-layout">
+        {/* Lado Esquerdo: Cards List */}
+        <div className="mobills-cards-grid">
+          {/* Card de adicionar novo */}
+          <div className="mobills-add-card-btn" onClick={() => onOpenAddModal('card')}>
+            <div className="mobills-add-card-icon-circle">+</div>
+            <span className="mobills-add-card-text">Novo cartão de crédito</span>
+          </div>
+          
+          {/* Lista de cartões */}
+          {(activeTab === 'open' ? openCards : closedCards).map(card => {
+            const percentageUsed = card.limit > 0 ? (card.invoiceTotal / card.limit) * 100 : 0;
+            const end = card.cycleEnd ? new Date(card.cycleEnd) : null;
+            
+            // Formatador data fechamento
+            let formattedCloseDate = '';
+            if (end) {
+              formattedCloseDate = `${end.getDate()} de ${MONTHS_BR[end.getMonth()]} de ${end.getFullYear()}`;
+            }
 
-        {openCards.length > 0 ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
-            {openCards.map(card => (
-              <Card 
+            // Formatador data vencimento
+            let formattedDueDate = '';
+            if (end) {
+              let dueMonth = end.getMonth();
+              if (card.dueDay <= card.closingDay) {
+                dueMonth = end.getMonth() + 1;
+              }
+              const d = new Date(end.getFullYear(), dueMonth, card.dueDay);
+              formattedDueDate = `${d.getDate()} de ${MONTHS_BR[d.getMonth()]} de ${d.getFullYear()}`;
+            }
+
+            return (
+              <div 
                 key={card.id} 
+                className="mobills-card-widget"
                 onClick={() => setSelectedCard(card)}
-                style={{ position: 'relative', overflow: 'hidden', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}
-                className="card-meta-add-hover"
               >
-                {/* Linha colorida lateral */}
-                <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '6px', backgroundColor: card.cardColor }} />
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingLeft: '0.5rem' }}>
-                  <div>
-                    <strong style={{ fontSize: '1rem', display: 'block' }}>{card.name}</strong>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600, display: 'block', marginTop: '0.15rem' }}>
-                      Fatura de {card.invoiceMonthName}
-                    </span>
-                    <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.2rem', marginTop: '0.2rem' }}>
-                      <Calendar size={12} /> Fecha dia {card.closingDay} • Vence dia {card.dueDay}
-                    </span>
+                {/* Linha colorida lateral esquerda */}
+                <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '6px', backgroundColor: card.cardColor, borderRadius: '24px 0 0 24px' }} />
+                
+                {/* Header do Card */}
+                <div className="mobills-card-header" style={{ paddingLeft: '0.5rem' }}>
+                  <div className="mobills-card-title-group">
+                    <span className="mobills-card-brand-label">{card.brand}</span>
+                    <strong className="mobills-card-name">{card.name}</strong>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    {renderBrandLogo(card.brand)}
-                    
-                    {/* Botões de Ação */}
-                    <div style={{ display: 'flex', gap: '0.15rem' }}>
-                      <button 
-                        className="btn-icon" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onOpenAddModal('card', card);
-                        }}
-                        style={{ padding: '0.3rem' }}
-                        title="Editar Cartão"
-                      >
-                        <Edit2 size={13} />
-                      </button>
-                      <button 
-                        className="btn-icon" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (window.confirm('Atenção: Excluir este cartão apagará todas as compras vinculadas a ele permanentemente. Continuar?')) {
-                            onDeleteCard(card.id);
-                          }
-                        }}
-                        style={{ padding: '0.3rem', color: 'var(--expense)' }}
-                        title="Excluir Cartão"
-                      >
-                        <Trash2 size={13} />
-                      </button>
+                  
+                  {/* Dots / Menu de Ações */}
+                  <div style={{ display: 'flex', gap: '0.15rem' }}>
+                    <button 
+                      className="btn-icon" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenAddModal('card', card);
+                      }}
+                      style={{ padding: '0.2rem' }}
+                      title="Editar Cartão"
+                    >
+                      <Edit2 size={13} />
+                    </button>
+                    <button 
+                      className="btn-icon" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (window.confirm('Atenção: Excluir este cartão apagará todas as compras vinculadas a ele permanentemente. Continuar?')) {
+                          onDeleteCard(card.id);
+                        }
+                      }}
+                      style={{ padding: '0.2rem', color: 'var(--expense)' }}
+                      title="Excluir Cartão"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Body do Card */}
+                <div className="mobills-card-body" style={{ paddingLeft: '0.5rem' }}>
+                  {activeTab === 'open' ? (
+                    <>
+                      <span className="mobills-card-subtitle open">Fatura aberta</span>
+                      <div className="mobills-card-row">
+                        <span className="mobills-card-row-label">Valor parcial</span>
+                        <span className="mobills-card-row-value-accent">R$ {new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2 }).format(card.invoiceTotal)}</span>
+                      </div>
+                      <div className="mobills-card-row">
+                        <span className="mobills-card-row-label">Fecha em</span>
+                        <span className="mobills-card-row-value-bold" style={{ fontSize: '0.78rem' }}>{formattedCloseDate || `${card.closingDay} de ${card.invoiceMonthName}`}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <span className="mobills-card-subtitle closed" style={{ color: '#ff9800' }}>Fatura vencida</span>
+                      <div className="mobills-card-row">
+                        <span className="mobills-card-row-label">Valor total</span>
+                        <span className="mobills-card-row-value-accent">R$ {new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2 }).format(card.invoiceTotal)}</span>
+                      </div>
+                      <div className="mobills-card-row">
+                        <span className="mobills-card-row-label">Venceu em</span>
+                        <span className="mobills-card-row-value-bold" style={{ fontSize: '0.78rem' }}>{formattedDueDate}</span>
+                      </div>
+                    </>
+                  )}
+                  
+                  {/* Barra de Progresso do Limite */}
+                  <div className="mobills-card-progress-bar-container">
+                    <div className="mobills-card-progress-bar-text">
+                      <span>R$ {new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2 }).format(card.invoiceTotal)} de R$ {new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2 }).format(card.limit)}</span>
+                      <span>{percentageUsed.toFixed(2)}%</span>
+                    </div>
+                    <div className="mobills-card-progress-bar-track">
+                      <div 
+                        className="mobills-card-progress-bar-fill" 
+                        style={{ width: `${Math.min(percentageUsed, 100)}%`, backgroundColor: card.cardColor }} 
+                      />
                     </div>
                   </div>
                 </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', paddingLeft: '0.5rem' }}>
-                  <div>
-                    <span style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Fatura Parcial</span>
-                    <strong style={{ fontSize: '1.15rem', color: 'var(--expense)' }}>{formatCurrency(card.invoiceTotal)}</strong>
-                  </div>
-                  <div>
-                    <span style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Limite Disponível</span>
-                    <strong style={{ fontSize: '1.15rem', color: 'var(--income)' }}>{formatCurrency(card.availableLimit)}</strong>
-                  </div>
+                
+                {/* Footer com Limite e Ação */}
+                <div className="mobills-card-footer" style={{ paddingLeft: '0.5rem' }}>
+                  <span className="mobills-card-footer-limit">
+                    Limite Disponível R$ {new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2 }).format(card.availableLimit)}
+                  </span>
+                  
+                  {activeTab === 'open' ? (
+                    <button 
+                      className="mobills-card-action-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenAddCardTx(); // Abre o modal de despesa do cartão
+                      }}
+                    >
+                      Adicionar Despesa
+                    </button>
+                  ) : (
+                    <button 
+                      className="mobills-card-action-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedCard(card);
+                        setPayingCardId(card.id);
+                        setPaymentAccount(card.linkedAccount !== 'none' ? card.linkedAccount : 'none');
+                      }}
+                    >
+                      Pagar Fatura
+                    </button>
+                  )}
                 </div>
-              </Card>
-            ))}
+              </div>
+            );
+          })}
+        </div>
+        
+        {/* Lado Direito: Summary Widgets */}
+        <div className="mobills-summary-stack">
+          {/* Widget 1: Melhor Cartão ou Próximo Vencimento */}
+          <div className="mobills-summary-card">
+            <div className="mobills-summary-card-info">
+              <span className="mobills-summary-card-label">
+                {activeTab === 'open' ? 'O melhor cartão para comprar hoje é' : 'Sua próxima fatura vence em'}
+              </span>
+              <strong className="mobills-summary-card-value" style={{ fontSize: '1rem' }}>
+                {activeTab === 'open' ? getBestCardForToday() : getNextDueDate()}
+              </strong>
+            </div>
+            <div className="mobills-summary-card-icon-circle">
+              <CreditCard size={18} />
+            </div>
           </div>
-        ) : (
-          <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)', border: '1px dashed var(--border)', borderRadius: '18px', fontStyle: 'italic', fontSize: '0.85rem' }}>
-            Nenhum cartão com fatura aberta.
+          
+          {/* Widget 2: Limite Disponível Total */}
+          <div className="mobills-summary-card">
+            <div className="mobills-summary-card-info">
+              <span className="mobills-summary-card-label">Limite Disponível</span>
+              <strong className="mobills-summary-card-value">
+                {formatCurrency(totalAvailableLimit)}
+              </strong>
+            </div>
+            <div className="mobills-summary-card-icon-circle">
+              <Wallet size={18} />
+            </div>
           </div>
-        )}
+          
+          {/* Widget 3: Valor Total de Faturas */}
+          <div className="mobills-summary-card">
+            <div className="mobills-summary-card-info">
+              <span className="mobills-summary-card-label">Valor total</span>
+              <strong className="mobills-summary-card-value">
+                {formatCurrency(totalInvoiceAmount)}
+              </strong>
+            </div>
+            <div className="mobills-summary-card-icon-circle">
+              <span style={{ fontWeight: 'bold' }}>$</span>
+            </div>
+          </div>
+        </div>
       </div>
-
-      {/* 2. SEÇÃO: FATURAS FECHADAS */}
-      <div>
-        <h3 style={{ fontSize: '1.2rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.2rem' }}>
-          <Lock className="text-expense" size={20} />
-          Faturas Fechadas ({closedCards.length})
-        </h3>
-
-        {closedCards.length > 0 ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
-            {closedCards.map(card => (
-              <Card 
-                key={card.id} 
-                onClick={() => setSelectedCard(card)}
-                style={{ position: 'relative', overflow: 'hidden', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '0.85rem', border: '1px solid rgba(255, 82, 82, 0.15)' }}
-                className="card-meta-add-hover"
-              >
-                {/* Linha colorida lateral */}
-                <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '6px', backgroundColor: card.cardColor }} />
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingLeft: '0.5rem' }}>
-                  <div>
-                    <strong style={{ fontSize: '1rem', display: 'block' }}>{card.name}</strong>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--expense)', fontWeight: 600, display: 'block', marginTop: '0.15rem' }}>
-                      Fatura de {card.invoiceMonthName} (Fechada)
-                    </span>
-                    <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.2rem', marginTop: '0.2rem' }}>
-                      <Calendar size={12} /> Fecha dia {card.closingDay} • Vence dia {card.dueDay}
-                    </span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    {renderBrandLogo(card.brand)}
-                    
-                    {/* Botões de Ação */}
-                    <div style={{ display: 'flex', gap: '0.15rem' }}>
-                      <button 
-                        className="btn-icon" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onOpenAddModal('card', card);
-                        }}
-                        style={{ padding: '0.3rem' }}
-                        title="Editar Cartão"
-                      >
-                        <Edit2 size={13} />
-                      </button>
-                      <button 
-                        className="btn-icon" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (window.confirm('Atenção: Excluir este cartão apagará todas as compras vinculadas a ele permanentemente. Continuar?')) {
-                            onDeleteCard(card.id);
-                          }
-                        }}
-                        style={{ padding: '0.3rem', color: 'var(--expense)' }}
-                        title="Excluir Cartão"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', paddingLeft: '0.5rem' }}>
-                  <div>
-                    <span style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Valor Fechado</span>
-                    <strong style={{ fontSize: '1.15rem', color: 'var(--expense)' }}>{formatCurrency(card.invoiceTotal)}</strong>
-                  </div>
-                  <div>
-                    <span style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Limite Disponível</span>
-                    <strong style={{ fontSize: '1.15rem', color: 'var(--income)' }}>{formatCurrency(card.availableLimit)}</strong>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)', border: '1px dashed var(--border)', borderRadius: '18px', fontStyle: 'italic', fontSize: '0.85rem' }}>
-            Nenhum cartão com fatura fechada no momento.
-          </div>
-        )}
-      </div>
-
+      
     </div>
   );
 };
