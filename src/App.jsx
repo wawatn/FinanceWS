@@ -222,6 +222,7 @@ function App() {
             onAddTransaction={addTransaction}
             onDeleteTransaction={deleteTransaction}
             onOpenAddModal={handleOpenAddAccCard}
+            onDeleteCard={deleteCard}
           />
         );
       case 'reports':

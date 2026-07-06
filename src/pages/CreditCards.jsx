@@ -12,7 +12,8 @@ import {
   AlertCircle, 
   CheckCircle2,
   Trash2,
-  Lock
+  Lock,
+  Edit2
 } from 'lucide-react';
 
 const MONTHS_BR = [
@@ -121,7 +122,8 @@ export const CreditCards = ({
   transactions = [], 
   onAddTransaction,
   onDeleteTransaction,
-  onOpenAddModal
+  onOpenAddModal,
+  onDeleteCard
 }) => {
   const [selectedCard, setSelectedCard] = useState(null);
   
@@ -496,7 +498,37 @@ export const CreditCards = ({
                       <Calendar size={12} /> Fechamento dia {card.closingDay}
                     </span>
                   </div>
-                  {renderBrandLogo(card.brand)}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    {renderBrandLogo(card.brand)}
+                    
+                    {/* Botões de Ação */}
+                    <div style={{ display: 'flex', gap: '0.15rem' }}>
+                      <button 
+                        className="btn-icon" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onOpenAddModal('card', card);
+                        }}
+                        style={{ padding: '0.3rem' }}
+                        title="Editar Cartão"
+                      >
+                        <Edit2 size={13} />
+                      </button>
+                      <button 
+                        className="btn-icon" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (window.confirm('Atenção: Excluir este cartão apagará todas as compras vinculadas a ele permanentemente. Continuar?')) {
+                            onDeleteCard(card.id);
+                          }
+                        }}
+                        style={{ padding: '0.3rem', color: 'var(--expense)' }}
+                        title="Excluir Cartão"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', paddingLeft: '0.5rem' }}>
@@ -545,7 +577,37 @@ export const CreditCards = ({
                       <Calendar size={12} /> Vencimento dia {card.dueDay} (Fechada)
                     </span>
                   </div>
-                  {renderBrandLogo(card.brand)}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    {renderBrandLogo(card.brand)}
+                    
+                    {/* Botões de Ação */}
+                    <div style={{ display: 'flex', gap: '0.15rem' }}>
+                      <button 
+                        className="btn-icon" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onOpenAddModal('card', card);
+                        }}
+                        style={{ padding: '0.3rem' }}
+                        title="Editar Cartão"
+                      >
+                        <Edit2 size={13} />
+                      </button>
+                      <button 
+                        className="btn-icon" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (window.confirm('Atenção: Excluir este cartão apagará todas as compras vinculadas a ele permanentemente. Continuar?')) {
+                            onDeleteCard(card.id);
+                          }
+                        }}
+                        style={{ padding: '0.3rem', color: 'var(--expense)' }}
+                        title="Excluir Cartão"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', paddingLeft: '0.5rem' }}>
