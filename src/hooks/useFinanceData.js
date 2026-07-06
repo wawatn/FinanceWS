@@ -30,23 +30,51 @@ export const useFinanceData = () => {
   });
   const [defaultAccountId, setDefaultAccountId] = useState('');
 
+  // Função para limpar dados de exemplo de novos usuários (cadastro recente)
+  const cleanNewUserDummyData = async (userId, createdAtString, metadata) => {
+    if (!userId || !createdAtString) return;
+    
+    const accountAgeMs = Date.now() - new Date(createdAtString).getTime();
+    const isBrandNew = accountAgeMs < 1000 * 60 * 10; // menos de 10 minutos
+    const hasCleared = metadata?.has_cleared_seed;
+
+    if (isBrandNew && !hasCleared) {
+      console.log('Detectando novo cadastro recente. Limpando dados semente de teste...');
+      try {
+        await supabase.from('transactions').delete().eq('user_id', userId);
+        await supabase.from('budgets').delete().eq('user_id', userId);
+        await supabase.from('cards').delete().eq('user_id', userId);
+        await supabase.from('accounts').delete().eq('user_id', userId);
+        
+        await supabase.auth.updateUser({
+          data: { has_cleared_seed: true }
+        });
+        console.log('Dados de teste limpos com sucesso para o novo usuário.');
+      } catch (err) {
+        console.error('Erro na rotina de limpeza de novo usuário:', err);
+      }
+    }
+  };
+
   // 1. Escutar a sessão de login do Supabase
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
         setActiveSpaceUserId(session.user.id);
+        await cleanNewUserDummyData(session.user.id, session.user.created_at, session.user.user_metadata);
       } else {
         setLoading(false);
       }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
         setActiveSpaceUserId(session.user.id);
+        await cleanNewUserDummyData(session.user.id, session.user.created_at, session.user.user_metadata);
       } else {
         setAccounts([]);
         setCards([]);
@@ -645,28 +673,78 @@ export const useFinanceData = () => {
   // GERENCIAR CONTAS
   const addAccount = async (acc) => {
     if (!activeSpaceUserId) return;
+    
+    const initialBalance = Number(acc.balance || 0);
+
     const payload = {
       user_id: activeSpaceUserId,
       name: acc.name,
-      balance: Number(acc.balance || 0),
+      balance: 0, // Inicia em 0 para que o saldo inicial seja lançado via transação
       type: acc.type,
       color: acc.color
     };
+
     const { data, error } = await supabase.from('accounts').insert([payload]).select();
     if (error) {
       console.error('Erro ao criar conta:', error.message);
       return;
     }
-    setAccounts(prev => [...prev, data[0]]);
+
+    const newAccount = data[0];
+    setAccounts(prev => [...prev, newAccount]);
+
+    if (initialBalance !== 0) {
+      const initialTx = {
+        description: `Saldo Inicial - ${acc.name}`,
+        amount: Math.abs(initialBalance),
+        date: new Date().toISOString().split('T')[0],
+        category: initialBalance > 0 ? 'Rendimentos' : 'Outros',
+        accountId: newAccount.id,
+        cardId: null,
+        destinationAccountId: null,
+        type: initialBalance > 0 ? 'income' : 'expense',
+        status: 'confirmed'
+      };
+      await addTransaction(initialTx);
+    }
   };
 
   const editAccount = async (id, updatedAcc) => {
-    const { error } = await supabase.from('accounts').update(updatedAcc).eq('id', id);
+    const currentAcc = accounts.find(a => a.id === id);
+    if (!currentAcc) return;
+
+    const currentBalance = Number(currentAcc.balance || 0);
+    const newBalance = Number(updatedAcc.balance || 0);
+    const diff = newBalance - currentBalance;
+
+    const accountPayload = {
+      name: updatedAcc.name,
+      type: updatedAcc.type,
+      color: updatedAcc.color
+    };
+
+    const { error } = await supabase.from('accounts').update(accountPayload).eq('id', id);
     if (error) {
       console.error('Erro ao editar conta:', error.message);
       return;
     }
-    setAccounts(prev => prev.map(acc => acc.id === id ? { ...acc, ...updatedAcc } : acc));
+
+    setAccounts(prev => prev.map(acc => acc.id === id ? { ...acc, ...accountPayload } : acc));
+
+    if (diff !== 0) {
+      const adjustTx = {
+        description: `Ajuste de Saldo - ${updatedAcc.name}`,
+        amount: Math.abs(diff),
+        date: new Date().toISOString().split('T')[0],
+        category: diff > 0 ? 'Rendimentos' : 'Outros',
+        accountId: id,
+        cardId: null,
+        destinationAccountId: null,
+        type: diff > 0 ? 'income' : 'expense',
+        status: 'confirmed'
+      };
+      await addTransaction(adjustTx);
+    }
   };
 
   // GERENCIAR CARTÕES

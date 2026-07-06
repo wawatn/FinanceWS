@@ -19,6 +19,7 @@ export const AddAccountCardModal = ({ isOpen, onClose, onSave, type, editingItem
   const [accBalance, setAccBalance] = useState('');
   const [accType, setAccType] = useState('checking');
   const [accColor, setAccColor] = useState(PRESET_COLORS[0]);
+  const [sumInTotal, setSumInTotal] = useState(true);
 
   // Campos de Cartão
   const [cardName, setCardName] = useState('');
@@ -56,10 +57,13 @@ export const AddAccountCardModal = ({ isOpen, onClose, onSave, type, editingItem
 
     if (editingItem) {
       if (type === 'account') {
+        const [colorPart, optionPart] = (editingItem.color || '').split('|');
+        const isNoSum = optionPart === 'noSum';
         setAccName(editingItem.name || '');
         setAccBalance(formatValue(editingItem.balance));
         setAccType(editingItem.type || 'checking');
-        setAccColor(editingItem.color || PRESET_COLORS[0]);
+        setAccColor(colorPart || PRESET_COLORS[0]);
+        setSumInTotal(!isNoSum);
       } else if (type === 'card') {
         setCardName(editingItem.name || '');
         setCardLimit(formatValue(editingItem.limit));
@@ -74,6 +78,7 @@ export const AddAccountCardModal = ({ isOpen, onClose, onSave, type, editingItem
       setAccBalance('');
       setAccType('checking');
       setAccColor(PRESET_COLORS[0]);
+      setSumInTotal(true);
 
       setCardName('');
       setCardLimit('');
@@ -98,7 +103,7 @@ export const AddAccountCardModal = ({ isOpen, onClose, onSave, type, editingItem
         name: accName,
         balance: parseMoney(accBalance),
         type: accType,
-        color: accColor
+        color: accColor + (sumInTotal ? '' : '|noSum')
       });
     } else {
       if (!cardName || cardLimit === '') {
@@ -156,7 +161,6 @@ export const AddAccountCardModal = ({ isOpen, onClose, onSave, type, editingItem
                       required
                       placeholder="0,00"
                       value={accBalance}
-                      disabled={!!editingItem} // Evitar alteração arbitrária de saldo em edição para não bagunçar histórico
                       onChange={(e) => handleMoneyChange(e.target.value, setAccBalance)}
                     />
                   </div>
@@ -194,6 +198,19 @@ export const AddAccountCardModal = ({ isOpen, onClose, onSave, type, editingItem
                       />
                     ))}
                   </div>
+                </div>
+                {/* Opção de Soma no Saldo Geral */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1.25rem' }}>
+                  <input
+                    type="checkbox"
+                    id="sumInTotal"
+                    checked={sumInTotal}
+                    onChange={(e) => setSumInTotal(e.target.checked)}
+                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                  />
+                  <label htmlFor="sumInTotal" style={{ margin: 0, fontSize: '0.85rem', cursor: 'pointer', fontWeight: 500, userSelect: 'none' }}>
+                    Somar saldo desta conta no saldo geral
+                  </label>
                 </div>
               </>
             ) : (

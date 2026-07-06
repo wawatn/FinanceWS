@@ -4,7 +4,12 @@ import { formatCurrency } from '../../utils/formatters';
 
 export const SummaryCards = ({ accounts, cards, transactions }) => {
   // 1. Saldo Geral de Contas
-  const totalAccountsBalance = accounts.reduce((acc, curr) => acc + curr.balance, 0);
+  const totalAccountsBalance = accounts
+    .filter(acc => {
+      const [_, option] = (acc.color || '').split('|');
+      return option !== 'noSum';
+    })
+    .reduce((acc, curr) => acc + curr.balance, 0);
 
   // 2. Faturas de Cartão
   const totalInvoices = cards.reduce((acc, curr) => acc + curr.invoice, 0);

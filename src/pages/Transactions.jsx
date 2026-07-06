@@ -22,7 +22,9 @@ import {
   DollarSign,
   Briefcase,
   Wallet,
-  RefreshCw
+  RefreshCw,
+  TrendingUp,
+  TrendingDown
 } from 'lucide-react';
 
 const CATEGORIES = [
@@ -151,7 +153,12 @@ export const Transactions = ({
   });
 
   // Cálculos de Saldo e Balanço do Mês selecionado
-  const totalAccountsBalance = accounts.reduce((acc, curr) => acc + curr.balance, 0);
+  const totalAccountsBalance = accounts
+    .filter(acc => {
+      const [_, option] = (acc.color || '').split('|');
+      return option !== 'noSum';
+    })
+    .reduce((acc, curr) => acc + curr.balance, 0);
 
   const monthIncome = filteredTransactions
     .filter(t => t.type === 'income' && t.status === 'confirmed')
@@ -162,6 +169,15 @@ export const Transactions = ({
     .reduce((sum, t) => sum + t.amount, 0);
 
   const monthBalance = monthIncome - monthExpense;
+
+  // Receita e Despesa Bruta (inclui lançamentos pagos e pendentes)
+  const totalMonthIncomeAll = filteredTransactions
+    .filter(t => t.type === 'income')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const totalMonthExpenseAll = filteredTransactions
+    .filter(t => t.type === 'expense')
+    .reduce((sum, t) => sum + t.amount, 0);
 
   const getDestinationLabel = (tx) => {
     if (tx.type === 'transfer') {
@@ -305,11 +321,11 @@ export const Transactions = ({
         </button>
       </div>
 
-      {/* 2. CARD DUPLO DE SALDOS ESTILO MOBILLS */}
+      {/* 2. CARD MÚLTIPLO DE SALDOS ESTILO MOBILLS */}
       <div 
         style={{ 
           display: 'grid', 
-          gridTemplateColumns: '1fr 1fr', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', 
           gap: '1rem', 
           backgroundColor: 'var(--surface-secondary)', 
           padding: '1rem 1.25rem', 
@@ -319,21 +335,43 @@ export const Transactions = ({
       >
         {/* Saldo Atual */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-          <div style={{ color: 'var(--text-secondary)' }}><Wallet size={20} /></div>
+          <div style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center' }}><Wallet size={20} /></div>
           <div>
-            <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 500, display: 'block' }}>Saldo atual</span>
-            <strong style={{ fontSize: '1rem', color: 'var(--income)', fontWeight: 700 }}>
+            <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', fontWeight: 500, display: 'block' }}>Saldo atual</span>
+            <strong style={{ fontSize: '0.95rem', color: 'var(--income)', fontWeight: 700 }}>
               {formatCurrency(totalAccountsBalance)}
             </strong>
           </div>
         </div>
 
-        {/* Balanço Mensal */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', borderLeft: '1px solid var(--border)', paddingLeft: '1rem' }}>
-          <div style={{ color: 'var(--text-secondary)' }}><Briefcase size={20} /></div>
+        {/* Receitas (Mês) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', borderLeft: '1px solid var(--border)', paddingLeft: '1rem' }} className="transactions-stat-item">
+          <div style={{ color: 'var(--income)', display: 'flex', alignItems: 'center' }}><TrendingUp size={20} /></div>
           <div>
-            <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 500, display: 'block' }}>Balanço mensal</span>
-            <strong style={{ fontSize: '1rem', color: monthBalance >= 0 ? 'var(--income)' : 'var(--expense)', fontWeight: 700 }}>
+            <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', fontWeight: 500, display: 'block' }}>Receitas (Mês)</span>
+            <strong style={{ fontSize: '0.95rem', color: 'var(--income)', fontWeight: 700 }}>
+              {formatCurrency(totalMonthIncomeAll)}
+            </strong>
+          </div>
+        </div>
+
+        {/* Despesas (Mês) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', borderLeft: '1px solid var(--border)', paddingLeft: '1rem' }} className="transactions-stat-item">
+          <div style={{ color: 'var(--expense)', display: 'flex', alignItems: 'center' }}><TrendingDown size={20} /></div>
+          <div>
+            <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', fontWeight: 500, display: 'block' }}>Despesas (Mês)</span>
+            <strong style={{ fontSize: '0.95rem', color: 'var(--expense)', fontWeight: 700 }}>
+              {formatCurrency(totalMonthExpenseAll)}
+            </strong>
+          </div>
+        </div>
+
+        {/* Balanço Mensal */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', borderLeft: '1px solid var(--border)', paddingLeft: '1rem' }} className="transactions-stat-item">
+          <div style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center' }}><Briefcase size={20} /></div>
+          <div>
+            <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', fontWeight: 500, display: 'block' }}>Balanço mensal</span>
+            <strong style={{ fontSize: '0.95rem', color: monthBalance >= 0 ? 'var(--income)' : 'var(--expense)', fontWeight: 700 }}>
               {formatCurrency(monthBalance)}
             </strong>
           </div>

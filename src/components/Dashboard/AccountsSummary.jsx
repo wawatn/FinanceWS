@@ -52,6 +52,8 @@ export const AccountsSummary = ({ accounts, transactions, onManage }) => {
         {accounts.length > 0 ? (
           accounts.map((account) => {
             const { incomes, expenses } = getAccountMonthlyStats(account.id);
+            const [colorPart, optionPart] = (account.color || '').split('|');
+            const accountColor = colorPart || 'var(--primary)';
             
             return (
               <div 
@@ -73,17 +75,18 @@ export const AccountsSummary = ({ accounts, transactions, onManage }) => {
                     top: 0, 
                     bottom: 0, 
                     width: '6px', 
-                    backgroundColor: account.color || 'var(--primary)' 
+                    backgroundColor: accountColor 
                   }} 
                 />
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem', paddingLeft: '0.5rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <Wallet size={16} style={{ color: account.color }} />
+                    <Wallet size={16} style={{ color: accountColor }} />
                     <strong style={{ fontSize: '0.9rem' }}>{account.name}</strong>
                   </div>
                   <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', backgroundColor: 'var(--surface)', padding: '0.2rem 0.5rem', borderRadius: '6px' }}>
                     {getAccountTypeLabel(account.type)}
+                    {optionPart === 'noSum' && ' (Ignorado)'}
                   </span>
                 </div>
 

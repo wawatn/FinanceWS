@@ -872,3 +872,11 @@ tr:hover td {
   transform: translateY(-2px);
 }
 
+/* Ajustes responsivos para itens de estatísticas de transações */
+@media (max-width: 768px) {
+  .transactions-stat-item {
+    border-left: none !important;
+    padding-left: 0 !important;
+  }
+}
+

@@ -48,44 +48,64 @@ export const AccountsCards = ({
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
-          {accounts.map((acc) => (
-            <Card key={acc.id} style={{ position: 'relative', overflow: 'hidden' }}>
-              {/* Faixa lateral colorida */}
-              <div 
-                style={{ 
-                  position: 'absolute', 
-                  left: 0, 
-                  top: 0, 
-                  bottom: 0, 
-                  width: '6px', 
-                  backgroundColor: acc.color || 'var(--primary)' 
-                }} 
-              />
-              
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingLeft: '0.5rem', marginBottom: '1rem' }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                    <strong style={{ fontSize: '1rem' }}>{acc.name}</strong>
-                    {acc.id === defaultAccountId && (
-                      <span style={{ 
-                        backgroundColor: 'rgba(255, 215, 0, 0.15)', 
-                        color: '#FFB300', 
-                        fontSize: '0.625rem', 
-                        padding: '0.08rem 0.35rem', 
-                        borderRadius: '6px', 
-                        fontWeight: 700,
-                        border: '1px solid rgba(255, 215, 0, 0.25)',
-                        letterSpacing: '0.3px',
-                        textTransform: 'uppercase'
-                      }}>
-                        Principal
-                      </span>
-                    )}
+          {accounts.map((acc) => {
+            const [colorPart, optionPart] = (acc.color || '').split('|');
+            const sumInTotal = optionPart !== 'noSum';
+            const accountColor = colorPart || 'var(--primary)';
+
+            return (
+              <Card key={acc.id} style={{ position: 'relative', overflow: 'hidden' }}>
+                {/* Faixa lateral colorida */}
+                <div 
+                  style={{ 
+                    position: 'absolute', 
+                    left: 0, 
+                    top: 0, 
+                    bottom: 0, 
+                    width: '6px', 
+                    backgroundColor: accountColor 
+                  }} 
+                />
+                
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingLeft: '0.5rem', marginBottom: '1rem' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+                      <strong style={{ fontSize: '1rem' }}>{acc.name}</strong>
+                      {acc.id === defaultAccountId && (
+                        <span style={{ 
+                          backgroundColor: 'rgba(255, 215, 0, 0.15)', 
+                          color: '#FFB300', 
+                          fontSize: '0.625rem', 
+                          padding: '0.08rem 0.35rem', 
+                          borderRadius: '6px', 
+                          fontWeight: 700,
+                          border: '1px solid rgba(255, 215, 0, 0.25)',
+                          letterSpacing: '0.3px',
+                          textTransform: 'uppercase'
+                        }}>
+                          Principal
+                        </span>
+                      )}
+                      {!sumInTotal && (
+                        <span style={{ 
+                          backgroundColor: 'rgba(255, 76, 76, 0.1)', 
+                          color: 'var(--expense)', 
+                          fontSize: '0.625rem', 
+                          padding: '0.08rem 0.35rem', 
+                          borderRadius: '6px', 
+                          fontWeight: 700,
+                          border: '1px solid rgba(255, 76, 76, 0.2)',
+                          letterSpacing: '0.3px',
+                          textTransform: 'uppercase'
+                        }}>
+                          Ignorado
+                        </span>
+                      )}
+                    </div>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                      {acc.type === 'checking' ? 'Conta Corrente' : (acc.type === 'savings' ? 'Poupança' : 'Dinheiro em Espécie')}
+                    </span>
                   </div>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                    {acc.type === 'checking' ? 'Conta Corrente' : (acc.type === 'savings' ? 'Poupança' : 'Dinheiro em Espécie')}
-                  </span>
-                </div>
                 
                 <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
                   {/* Estrela de Conta Principal */}
@@ -129,7 +149,8 @@ export const AccountsCards = ({
                 </strong>
               </div>
             </Card>
-          ))}
+            );
+          })}
         </div>
       </div>
 
