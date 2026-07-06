@@ -7,13 +7,15 @@ import { Dashboard } from './pages/Dashboard';
 import { Transactions } from './pages/Transactions';
 import { Planning } from './pages/Planning';
 import { AccountsCards } from './pages/AccountsCards';
+import { CreditCards } from './pages/CreditCards';
 import { Reports } from './pages/Reports';
 import { Settings } from './pages/Settings';
 import { Auth } from './pages/Auth';
-import { PiggyBank } from 'lucide-react';
+import { PiggyBank, X, Wallet, CreditCard } from 'lucide-react';
 
 // Modals
 import { AddTransactionModal } from './components/Modals/AddTransactionModal';
+import { AddCardTransactionModal } from './components/Modals/AddCardTransactionModal';
 import { OfxImportModal } from './components/Modals/OfxImportModal';
 import { AddAccountCardModal } from './components/Modals/AddAccountCardModal';
 import { ResetPasswordModal } from './components/Modals/ResetPasswordModal';
@@ -65,6 +67,8 @@ function App() {
 
   // Controle de Modals
   const [isAddTxOpen, setIsAddTxOpen] = useState(false);
+  const [isAddCardTxOpen, setIsAddCardTxOpen] = useState(false);
+  const [isQuickAddMenuOpen, setIsQuickAddMenuOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState(null);
   const [isOfxOpen, setIsOfxOpen] = useState(false);
   const [isAddAccCardOpen, setIsAddAccCardOpen] = useState(false);
@@ -84,7 +88,7 @@ function App() {
   // Handlers para Transação
   const handleOpenAddTx = () => {
     setEditingTransaction(null);
-    setIsAddTxOpen(true);
+    setIsQuickAddMenuOpen(true);
   };
 
   const handleOpenEditTx = (tx) => {
@@ -209,6 +213,17 @@ function App() {
             onSetDefaultAccount={changeDefaultAccount}
           />
         );
+      case 'cards':
+        return (
+          <CreditCards
+            cards={cards}
+            accounts={accounts}
+            transactions={transactions}
+            onAddTransaction={addTransaction}
+            onDeleteTransaction={deleteTransaction}
+            onOpenAddModal={handleOpenAddAccCard}
+          />
+        );
       case 'reports':
         return <Reports transactions={transactions} />;
       case 'settings':
@@ -253,6 +268,7 @@ function App() {
           onOpenImport={() => setIsOfxOpen(true)}
           onLogout={handleLogout}
           user={user}
+          onNavigate={setActivePage}
         />
 
         <main className="main-content">
@@ -289,6 +305,16 @@ function App() {
         type={accCardType}
         editingItem={editingAccCardItem}
         onSave={handleSaveAccCard}
+        accounts={accounts}
+      />
+
+      {/* Modal: Adicionar Compra no Cartão */}
+      <AddCardTransactionModal
+        isOpen={isAddCardTxOpen}
+        onClose={() => setIsAddCardTxOpen(false)}
+        onSave={handleSaveTransaction}
+        cards={cards}
+        customCategories={customCategories}
       />
 
       {/* Modal: Redefinição de Senha via Link de E-mail */}
@@ -296,6 +322,76 @@ function App() {
         isOpen={isResetPasswordOpen}
         onClose={() => setIsResetPasswordOpen(false)}
       />
+
+      {/* Modal: Menu de Seleção Rápida de Lançamento */}
+      {isQuickAddMenuOpen && (
+        <div className="modal-overlay" onClick={() => setIsQuickAddMenuOpen(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '360px', padding: '1.5rem', borderRadius: '24px' }}>
+            <div className="modal-header" style={{ borderBottom: 'none', padding: 0, marginBottom: '1.25rem' }}>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0 }}>O que deseja lançar?</h3>
+              <button className="btn-icon" onClick={() => setIsQuickAddMenuOpen(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <button 
+                className="btn btn-secondary" 
+                onClick={() => {
+                  setIsQuickAddMenuOpen(false);
+                  setEditingTransaction(null);
+                  setIsAddTxOpen(true);
+                }}
+                style={{ 
+                  padding: '1rem', 
+                  borderRadius: '16px', 
+                  justifyContent: 'flex-start', 
+                  gap: '0.85rem', 
+                  width: '100%',
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  backgroundColor: 'var(--surface-secondary)',
+                  border: '1px solid var(--border)'
+                }}
+              >
+                <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: 'rgba(0, 230, 118, 0.1)', color: 'var(--income)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Wallet size={18} />
+                </div>
+                <div style={{ textAlign: 'left' }}>
+                  <span style={{ display: 'block', color: 'var(--text)' }}>Lançamento de Conta</span>
+                  <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 400, marginTop: '2px' }}>Receitas, despesas bancárias e transferências</span>
+                </div>
+              </button>
+
+              <button 
+                className="btn btn-secondary" 
+                onClick={() => {
+                  setIsQuickAddMenuOpen(false);
+                  setIsAddCardTxOpen(true);
+                }}
+                style={{ 
+                  padding: '1rem', 
+                  borderRadius: '16px', 
+                  justifyContent: 'flex-start', 
+                  gap: '0.85rem', 
+                  width: '100%',
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  backgroundColor: 'var(--surface-secondary)',
+                  border: '1px solid var(--border)'
+                }}
+              >
+                <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: 'rgba(255, 82, 82, 0.1)', color: 'var(--expense)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <CreditCard size={18} />
+                </div>
+                <div style={{ textAlign: 'left' }}>
+                  <span style={{ display: 'block', color: 'var(--text)' }}>Compra no Cartão</span>
+                  <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 400, marginTop: '2px' }}>Despesa parcelada ou à vista no cartão de crédito</span>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

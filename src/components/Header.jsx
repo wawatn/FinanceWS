@@ -7,14 +7,16 @@ export const Header = ({
   toggleTheme, 
   onOpenImport, 
   onLogout,
-  user
+  user,
+  onNavigate
 }) => {
   const getPageTitle = () => {
     switch (activePage) {
       case 'dashboard': return 'Meu Painel';
       case 'transactions': return 'Transações';
       case 'planning': return 'Orçamentos & Metas';
-      case 'accounts': return 'Contas & Cartões';
+      case 'accounts': return 'Contas Bancárias';
+      case 'cards': return 'Cartões de Crédito';
       case 'reports': return 'Gráficos & Relatórios';
       case 'settings': return 'Configurações';
       default: return 'Finanças';
@@ -48,12 +50,12 @@ export const Header = ({
           {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
         </button>
 
-        {/* Perfil do Usuário (Click para Sair) */}
+        {/* Perfil do Usuário (Click para Configurações) */}
         <div 
           className="user-profile" 
-          onClick={onLogout}
+          onClick={() => onNavigate('settings')}
           style={{ cursor: 'pointer', gap: '0.5rem' }}
-          title="Clique para Sair da Conta"
+          title="Clique para ir para Configurações"
         >
           <div className="user-avatar" style={{ overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--surface-secondary)' }}>
             {user?.user_metadata?.avatar_url ? (
@@ -67,7 +69,7 @@ export const Header = ({
             )}
           </div>
           <span className="user-name" style={{ fontSize: '0.9rem', fontWeight: 600 }}>
-            {user?.user_metadata?.displayName || 'Sair'}
+            {user?.user_metadata?.displayName || 'Perfil'}
           </span>
         </div>
       </div>

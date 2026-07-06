@@ -16,7 +16,7 @@ const CATEGORIES = [
   'Outros'
 ];
 
-export const AddTransactionModal = ({ isOpen, onClose, onSave, editingTransaction, accounts, cards, defaultAccountId, customCategories = [] }) => {
+export const AddTransactionModal = ({ isOpen, onClose, onSave, editingTransaction, accounts, defaultAccountId, customCategories = [] }) => {
   const allCategories = [
     'Alimentação',
     'Transporte',
@@ -110,17 +110,8 @@ export const AddTransactionModal = ({ isOpen, onClose, onSave, editingTransactio
       if (editingTransaction.type === 'transfer') {
         setAccountId(editingTransaction.accountId || '');
         setDestinationAccountId(editingTransaction.destinationAccountId || '');
-        setCardId('');
       } else {
-        if (editingTransaction.cardId) {
-          setPaymentType('card');
-          setCardId(editingTransaction.cardId);
-          setAccountId('');
-        } else {
-          setPaymentType('account');
-          setAccountId(editingTransaction.accountId || '');
-          setCardId('');
-        }
+        setAccountId(editingTransaction.accountId || '');
       }
 
       setRecurrenceType(editingTransaction.isFixed ? 'fixed' : 'single');
@@ -138,7 +129,6 @@ export const AddTransactionModal = ({ isOpen, onClose, onSave, editingTransactio
       setPaymentType('account');
       const hasDefault = defaultAccountId && accounts.some(a => a.id === defaultAccountId);
       setAccountId(hasDefault ? defaultAccountId : (accounts.length > 0 ? accounts[0].id : ''));
-      setCardId(cards.length > 0 ? cards[0].id : '');
       setDestinationAccountId(accounts.length > 1 ? accounts[1].id : '');
       setRecurrenceType('single');
       setInstallmentCount(2);
@@ -146,7 +136,7 @@ export const AddTransactionModal = ({ isOpen, onClose, onSave, editingTransactio
       setSmartText('');
       setSmartError('');
     }
-  }, [editingTransaction, isOpen, accounts, cards]);
+  }, [editingTransaction, isOpen, accounts]);
 
   // Alerta de status pendente para datas futuras
   useEffect(() => {
@@ -223,14 +213,9 @@ export const AddTransactionModal = ({ isOpen, onClose, onSave, editingTransactio
         if (parsed.accountId) setAccountId(parsed.accountId);
         if (parsed.destinationAccountId) setDestinationAccountId(parsed.destinationAccountId);
       } else {
-        if (parsed.cardId) {
-          setPaymentType('card');
-          setCardId(parsed.cardId);
-          setAccountId('');
-        } else if (parsed.accountId) {
+        if (parsed.accountId) {
           setPaymentType('account');
           setAccountId(parsed.accountId);
-          setCardId('');
         }
         
         // Configurar Recorrência
@@ -294,8 +279,8 @@ export const AddTransactionModal = ({ isOpen, onClose, onSave, editingTransactio
       date,
       category: type === 'transfer' ? 'Transferência' : category,
       type,
-      accountId: type === 'income' || type === 'transfer' || paymentType === 'account' ? accountId : null,
-      cardId: type === 'expense' && paymentType === 'card' ? cardId : null,
+      accountId,
+      cardId: null,
       destinationAccountId: type === 'transfer' ? destinationAccountId : null,
       status,
       isInstallment: type !== 'transfer' && recurrenceType === 'installment',
@@ -489,75 +474,19 @@ export const AddTransactionModal = ({ isOpen, onClose, onSave, editingTransactio
                 </div>
               </div>
             ) : type === 'expense' ? (
-              // Modo Despesa comum: Cartão ou Conta
+              // Modo Despesa comum: Pagar com Conta
               <div>
-                <label>Forma de Pagamento</label>
-                <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                  <button
-                    type="button"
-                    className="btn"
-                    style={{
-                      flex: 1,
-                      justifyContent: 'center',
-                      fontSize: '0.85rem',
-                      padding: '0.5rem',
-                      border: `1px solid ${paymentType === 'account' ? 'var(--primary)' : 'var(--border)'}`,
-                      backgroundColor: paymentType === 'account' ? 'var(--primary-glow)' : 'transparent',
-                      color: paymentType === 'account' ? 'var(--text)' : 'var(--text-secondary)',
-                    }}
-                    onClick={() => {
-                      setPaymentType('account');
-                      if (accounts.length > 0) setAccountId(accounts[0].id);
-                      setCardId('');
-                    }}
-                  >
-                    <Wallet size={16} />
-                    Conta Bancária
-                  </button>
-                  <button
-                    type="button"
-                    className="btn"
-                    style={{
-                      flex: 1,
-                      justifyContent: 'center',
-                      fontSize: '0.85rem',
-                      padding: '0.5rem',
-                      border: `1px solid ${paymentType === 'card' ? 'var(--primary)' : 'var(--border)'}`,
-                      backgroundColor: paymentType === 'card' ? 'var(--primary-glow)' : 'transparent',
-                      color: paymentType === 'card' ? 'var(--text)' : 'var(--text-secondary)',
-                    }}
-                    onClick={() => {
-                      setPaymentType('card');
-                      if (cards.length > 0) setCardId(cards[0].id);
-                      setAccountId('');
-                    }}
-                  >
-                    <CreditCard size={16} />
-                    Cartão de Crédito
-                  </button>
-                </div>
-
-                {paymentType === 'account' ? (
-                  <select
-                    value={accountId}
-                    onChange={(e) => setAccountId(e.target.value)}
-                  >
-                    <option value="" disabled>Selecione uma conta</option>
-                    {accounts.map(acc => (
-                      <option key={acc.id} value={acc.id}>{acc.name} (R$ {acc.balance.toFixed(2)})</option>
-                    ))}
-                  </select>
-                ) : (
-                  <select
-                    value={cardId}
-                    onChange={(e) => setCardId(e.target.value)}
-                  >
-                    <option value="" disabled>Selecione um cartão</option>
-                    {cards.map(card => (
-                      <option key={card.id} value={card.id}>{card.name} (Fat: R$ {card.invoice.toFixed(2)})</option>
-                    ))}
-                  </select>
-                )}
+                <label>Pagar com a Conta</label>
+                <select
+                  value={accountId}
+                  onChange={(e) => setAccountId(e.target.value)}
+                  required
+                >
+                  <option value="" disabled>Selecione uma conta</option>
+                  {accounts.map(acc => (
+                    <option key={acc.id} value={acc.id}>{acc.name} (R$ {acc.balance.toFixed(2)})</option>
+                  ))}
+                </select>
               </div>
             ) : (
               // Modo Receita comum: Receber na Conta

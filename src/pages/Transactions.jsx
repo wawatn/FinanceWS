@@ -179,6 +179,72 @@ export const Transactions = ({
     .filter(t => t.type === 'expense')
     .reduce((sum, t) => sum + t.amount, 0);
 
+  // Helper de ciclo de fatura
+  const getCardCycleRange = (card, year, month) => {
+    const closingDay = card.closing_day || card.closingDay || 5;
+    const dueDay = card.due_day || card.dueDay || 10;
+    
+    let startYear = year;
+    let startMonth = month - 1;
+    let endYear = year;
+    let endMonth = month;
+    
+    if (closingDay >= dueDay) {
+      startMonth = month - 2;
+      endMonth = month - 1;
+    }
+    
+    const start = new Date(startYear, startMonth, closingDay + 1, 0, 0, 0);
+    const end = new Date(endYear, endMonth, closingDay, 23, 59, 59);
+    
+    return { start, end };
+  };
+
+  // 1. Filtrar lançamentos da listagem para remover compras avulsas de cartões
+  const accountTransactionsOnly = filteredTransactions.filter(tx => !tx.cardId);
+
+  // 2. Gerar faturas sintéticas consolidadas para cada cartão no mês ativo
+  const cardInvoicesForMonth = cards.map(card => {
+    const { start, end } = getCardCycleRange(card, currentDate.getFullYear(), currentDate.getMonth());
+    
+    const cycleTxs = transactions.filter(tx => {
+      if (tx.cardId !== card.id) return false;
+      const txDate = new Date(tx.date + 'T00:00:00');
+      return txDate >= start && txDate <= end;
+    });
+
+    const invoiceAmount = cycleTxs.reduce((sum, tx) => sum + tx.amount, 0);
+    if (invoiceAmount === 0) return null;
+
+    const hasPaymentTx = transactions.some(tx => 
+      tx.type === 'expense' && 
+      tx.description === `Pagamento Fatura - ${card.name}` && 
+      new Date(tx.date + 'T00:00:00').getMonth() === currentDate.getMonth() && 
+      new Date(tx.date + 'T00:00:00').getFullYear() === currentDate.getFullYear()
+    );
+
+    const dueMonth = currentDate.getMonth() + 1;
+    const dueYear = currentDate.getFullYear();
+    const dueDateStr = `${dueYear}-${String(dueMonth).padStart(2, '0')}-${String(card.dueDay || card.due_day || 10).padStart(2, '0')}`;
+
+    return {
+      id: `synthetic-invoice-${card.id}-${dueYear}-${dueMonth}`,
+      description: `Fatura - ${card.name}`,
+      amount: invoiceAmount,
+      date: dueDateStr,
+      category: 'Outros',
+      type: 'expense',
+      status: hasPaymentTx ? 'confirmed' : 'pending',
+      cardId: card.id,
+      isSyntheticInvoice: true,
+      hasPaymentTx
+    };
+  }).filter(Boolean);
+
+  // 3. Unificar os lançamentos normais e faturas sintéticas
+  const displayTransactionsList = [...accountTransactionsOnly, ...cardInvoicesForMonth]
+    .sort((a, b) => new Date(b.date + 'T00:00:00') - new Date(a.date + 'T00:00:00'));
+
   const getDestinationLabel = (tx) => {
     if (tx.type === 'transfer') {
       const origin = accounts.find(a => a.id === tx.accountId);
@@ -204,7 +270,7 @@ export const Transactions = ({
 
   // Agrupamento por Data para a visualização Mobile
   const groupTransactionsByDate = () => {
-    const grouped = filteredTransactions.reduce((acc, tx) => {
+    const grouped = displayTransactionsList.reduce((acc, tx) => {
       const dateStr = tx.date;
       if (!acc[dateStr]) acc[dateStr] = [];
       acc[dateStr].push(tx);
@@ -500,8 +566,8 @@ export const Transactions = ({
                 </tr>
               </thead>
               <tbody>
-                {filteredTransactions.length > 0 ? (
-                  filteredTransactions.map((tx) => {
+                {displayTransactionsList.length > 0 ? (
+                  displayTransactionsList.map((tx) => {
                     const isIncome = tx.type === 'income';
                     const isTransfer = tx.type === 'transfer';
                     return (
@@ -513,24 +579,38 @@ export const Transactions = ({
                         }}
                       >
                         <td>
-                          <button
-                            onClick={() => onToggleStatus(tx.id)}
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              padding: '0.25rem',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: tx.status === 'confirmed' 
-                                ? (isIncome ? 'var(--income)' : (isTransfer ? 'var(--primary)' : 'var(--primary)'))
-                                : 'var(--text-secondary)'
-                            }}
-                            title={tx.status === 'confirmed' ? 'Confirmado' : 'Pendente'}
-                          >
-                            {tx.status === 'confirmed' ? <CheckCircle size={18} /> : <Circle size={18} />}
-                          </button>
+                          {tx.isSyntheticInvoice ? (
+                            <div 
+                              style={{
+                                padding: '0.25rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: tx.status === 'confirmed' ? 'var(--income)' : 'var(--text-secondary)'
+                              }}
+                            >
+                              {tx.status === 'confirmed' ? <CheckCircle size={18} /> : <Circle size={18} />}
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => onToggleStatus(tx.id)}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                padding: '0.25rem',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: tx.status === 'confirmed' 
+                                  ? (isIncome ? 'var(--income)' : (isTransfer ? 'var(--primary)' : 'var(--primary)'))
+                                  : 'var(--text-secondary)'
+                              }}
+                              title={tx.status === 'confirmed' ? 'Confirmado' : 'Pendente'}
+                            >
+                              {tx.status === 'confirmed' ? <CheckCircle size={18} /> : <Circle size={18} />}
+                            </button>
+                          )}
                         </td>
                         <td>
                           <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -568,21 +648,27 @@ export const Transactions = ({
                         </td>
                         <td style={{ textAlign: 'center' }}>
                           <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                            <button 
-                              className="btn-icon" 
-                              onClick={() => onEditClick(tx)}
-                              title="Editar"
-                            >
-                              <Edit size={14} />
-                            </button>
-                            <button 
-                              className="btn-icon" 
-                              style={{ color: 'var(--expense)' }}
-                              onClick={() => onDeleteClick(tx.id)}
-                              title="Excluir"
-                            >
-                              <Trash2 size={14} />
-                            </button>
+                            {tx.isSyntheticInvoice ? (
+                              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>Consolidado</span>
+                            ) : (
+                              <>
+                                <button 
+                                  className="btn-icon" 
+                                  onClick={() => onEditClick(tx)}
+                                  title="Editar"
+                                >
+                                  <Edit size={14} />
+                                </button>
+                                <button 
+                                  className="btn-icon" 
+                                  style={{ color: 'var(--expense)' }}
+                                  onClick={() => onDeleteClick(tx.id)}
+                                  title="Excluir"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -693,70 +779,113 @@ export const Transactions = ({
                               {isTransfer ? '⇅' : (isIncome ? '+' : '-')} {formatCurrency(tx.amount)}
                             </strong>
 
-                            <div style={{ display: 'flex', gap: '0.25rem' }}>
-                              <button 
-                                className="btn-icon" 
-                                onClick={() => onEditClick(tx)}
-                                style={{ padding: '0.2rem', borderRadius: '6px' }}
-                                title="Editar"
-                              >
-                                <Edit size={11} />
-                              </button>
-                              <button 
-                                className="btn-icon" 
-                                style={{ color: 'var(--expense)', padding: '0.2rem', borderRadius: '6px' }}
-                                onClick={() => onDeleteClick(tx.id)}
-                                title="Excluir"
-                              >
-                                <Trash2 size={11} />
-                              </button>
-                            </div>
+                            {tx.isSyntheticInvoice ? (
+                              <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', fontStyle: 'italic', paddingRight: '0.25rem' }}>Consolidado</span>
+                            ) : (
+                              <div style={{ display: 'flex', gap: '0.25rem' }}>
+                                <button 
+                                  className="btn-icon" 
+                                  onClick={() => onEditClick(tx)}
+                                  style={{ padding: '0.2rem', borderRadius: '6px' }}
+                                  title="Editar"
+                                >
+                                  <Edit size={11} />
+                                </button>
+                                <button 
+                                  className="btn-icon" 
+                                  style={{ color: 'var(--expense)', padding: '0.2rem', borderRadius: '6px' }}
+                                  onClick={() => onDeleteClick(tx.id)}
+                                  title="Excluir"
+                                >
+                                  <Trash2 size={11} />
+                                </button>
+                              </div>
+                            )}
                           </div>
 
-                          {/* Pequeno Círculo de Status (Confirmado/Pendente) */}
-                          <button
-                            onClick={() => onToggleStatus(tx.id)}
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              padding: 0,
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: tx.status === 'confirmed' 
-                                ? (isIncome ? 'var(--income)' : 'var(--expense)')
-                                : 'var(--expense)',
-                              opacity: tx.status === 'confirmed' ? 0.8 : 1,
-                              flexShrink: 0
-                            }}
-                            title={tx.status === 'confirmed' ? 'Lançamento Pago (Clique para marcar como pendente)' : 'Lançamento Pendente (Clique para marcar como pago)'}
-                          >
-                            {tx.status === 'confirmed' ? (
-                              <div style={{ 
-                                width: '18px', 
-                                height: '18px', 
-                                borderRadius: '50%', 
-                                backgroundColor: isIncome ? 'var(--income)' : 'var(--expense)', 
-                                color: '#000000',
+                          {tx.isSyntheticInvoice ? (
+                            <div
+                              style={{
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                fontSize: '0.65rem',
-                                fontWeight: 900
-                              }}>
-                                ✓
-                              </div>
-                            ) : (
-                              <div style={{ 
-                                width: '18px', 
-                                height: '18px', 
-                                borderRadius: '50%', 
-                                border: '2px solid var(--expense)', 
-                                backgroundColor: 'transparent'
-                              }} />
-                            )}
-                          </button>
+                                color: tx.status === 'confirmed' 
+                                  ? (isIncome ? 'var(--income)' : 'var(--expense)')
+                                  : 'var(--expense)',
+                                opacity: tx.status === 'confirmed' ? 0.8 : 1,
+                                flexShrink: 0
+                              }}
+                            >
+                              {tx.status === 'confirmed' ? (
+                                <div style={{ 
+                                  width: '18px', 
+                                  height: '18px', 
+                                  borderRadius: '50%', 
+                                  backgroundColor: isIncome ? 'var(--income)' : 'var(--expense)', 
+                                  color: '#000000',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontSize: '0.65rem',
+                                  fontWeight: 900
+                                }}>
+                                  ✓
+                                </div>
+                              ) : (
+                                <div style={{ 
+                                  width: '18px', 
+                                  height: '18px', 
+                                  borderRadius: '50%', 
+                                  border: '2px solid var(--expense)', 
+                                  backgroundColor: 'transparent'
+                                }} />
+                              )}
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => onToggleStatus(tx.id)}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                padding: 0,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: tx.status === 'confirmed' 
+                                  ? (isIncome ? 'var(--income)' : 'var(--expense)')
+                                  : 'var(--expense)',
+                                opacity: tx.status === 'confirmed' ? 0.8 : 1,
+                                flexShrink: 0
+                              }}
+                              title={tx.status === 'confirmed' ? 'Lançamento Pago (Clique para marcar como pendente)' : 'Lançamento Pendente (Clique para marcar como pago)'}
+                            >
+                              {tx.status === 'confirmed' ? (
+                                <div style={{ 
+                                  width: '18px', 
+                                  height: '18px', 
+                                  borderRadius: '50%', 
+                                  backgroundColor: isIncome ? 'var(--income)' : 'var(--expense)', 
+                                  color: '#000000',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontSize: '0.65rem',
+                                  fontWeight: 900
+                                }}>
+                                  ✓
+                                </div>
+                              ) : (
+                                <div style={{ 
+                                  width: '18px', 
+                                  height: '18px', 
+                                  borderRadius: '50%', 
+                                  border: '2px solid var(--expense)', 
+                                  backgroundColor: 'transparent'
+                                }} />
+                              )}
+                            </button>
+                          )}
 
                         </div>
                       </div>

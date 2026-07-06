@@ -8,7 +8,8 @@ import {
   Plus, 
   PiggyBank,
   LogOut,
-  Settings
+  Settings,
+  CreditCard
 } from 'lucide-react';
 
 export const Navigation = ({ activePage, setActivePage, onOpenAddTransaction, onLogout }) => {
@@ -17,7 +18,8 @@ export const Navigation = ({ activePage, setActivePage, onOpenAddTransaction, on
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'transactions', label: 'Transações', icon: ArrowLeftRight },
     { id: 'planning', label: 'Planejamento', icon: Target },
-    { id: 'accounts', label: 'Contas & Cartões', icon: Wallet },
+    { id: 'accounts', label: 'Contas Bancárias', icon: Wallet },
+    { id: 'cards', label: 'Cartões de Crédito', icon: CreditCard },
     { id: 'reports', label: 'Relatórios', icon: PieChart },
     { id: 'settings', label: 'Configurações', icon: Settings },
   ];
@@ -26,8 +28,8 @@ export const Navigation = ({ activePage, setActivePage, onOpenAddTransaction, on
   const mobileMenuItems = [
     { id: 'dashboard', label: 'Painel', icon: LayoutDashboard },
     { id: 'transactions', label: 'Extrato', icon: ArrowLeftRight },
+    { id: 'cards', label: 'Cartões', icon: CreditCard },
     { id: 'planning', label: 'Metas', icon: Target },
-    { id: 'settings', label: 'Ajustes', icon: Settings },
   ];
 
   return (

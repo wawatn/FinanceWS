@@ -13,7 +13,7 @@ const PRESET_COLORS = [
   '#37474f'  // Escuro/Cinza
 ];
 
-export const AddAccountCardModal = ({ isOpen, onClose, onSave, type, editingItem }) => {
+export const AddAccountCardModal = ({ isOpen, onClose, onSave, type, editingItem, accounts = [] }) => {
   // Campos de Conta
   const [accName, setAccName] = useState('');
   const [accBalance, setAccBalance] = useState('');
@@ -28,6 +28,8 @@ export const AddAccountCardModal = ({ isOpen, onClose, onSave, type, editingItem
   const [cardClosingDay, setCardClosingDay] = useState(5);
   const [cardDueDay, setCardDueDay] = useState(10);
   const [cardColor, setCardColor] = useState(PRESET_COLORS[0]);
+  const [cardBrand, setCardBrand] = useState('mastercard');
+  const [cardLinkedAccount, setCardLinkedAccount] = useState('none');
 
   const handleMoneyChange = (val, setter) => {
     const digits = val.replace(/\D/g, '');
@@ -65,12 +67,15 @@ export const AddAccountCardModal = ({ isOpen, onClose, onSave, type, editingItem
         setAccColor(colorPart || PRESET_COLORS[0]);
         setSumInTotal(!isNoSum);
       } else if (type === 'card') {
+        const [colorPart, brandPart, accountPart] = (editingItem.color || '').split('|');
         setCardName(editingItem.name || '');
         setCardLimit(formatValue(editingItem.limit));
         setCardInvoice(formatValue(editingItem.invoice));
         setCardClosingDay(editingItem.closingDay || 5);
         setCardDueDay(editingItem.dueDay || 10);
-        setCardColor(editingItem.color || PRESET_COLORS[0]);
+        setCardColor(colorPart || PRESET_COLORS[0]);
+        setCardBrand(brandPart || 'mastercard');
+        setCardLinkedAccount(accountPart || 'none');
       }
     } else {
       // Limpar campos para nova adição
@@ -86,6 +91,8 @@ export const AddAccountCardModal = ({ isOpen, onClose, onSave, type, editingItem
       setCardClosingDay(5);
       setCardDueDay(10);
       setCardColor(PRESET_COLORS[0]);
+      setCardBrand('mastercard');
+      setCardLinkedAccount('none');
     }
   }, [editingItem, type, isOpen]);
 
@@ -116,7 +123,7 @@ export const AddAccountCardModal = ({ isOpen, onClose, onSave, type, editingItem
         invoice: parseMoney(cardInvoice || 0),
         closingDay: parseInt(cardClosingDay),
         dueDay: parseInt(cardDueDay),
-        color: cardColor
+        color: cardColor + '|' + cardBrand + '|' + cardLinkedAccount
       });
     }
     onClose();
@@ -274,6 +281,34 @@ export const AddAccountCardModal = ({ isOpen, onClose, onSave, type, editingItem
                       value={cardDueDay}
                       onChange={(e) => setCardDueDay(e.target.value)}
                     />
+                  </div>
+                </div>
+
+                {/* Bandeira e Conta Vinculada */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div>
+                    <label>Bandeira do Cartão</label>
+                    <select value={cardBrand} onChange={(e) => setCardBrand(e.target.value)}>
+                      <option value="mastercard">Mastercard</option>
+                      <option value="visa">Visa</option>
+                      <option value="elo">Elo</option>
+                      <option value="amex">American Express</option>
+                      <option value="hipercard">Hipercard</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label>Conta para Débito</label>
+                    <select value={cardLinkedAccount} onChange={(e) => setCardLinkedAccount(e.target.value)}>
+                      <option value="none">Nenhuma Conta</option>
+                      {accounts.map(acc => {
+                        const [colorVal] = (acc.color || '').split('|');
+                        return (
+                          <option key={acc.id} value={acc.id}>
+                            {acc.name}
+                          </option>
+                        );
+                      })}
+                    </select>
                   </div>
                 </div>
 
