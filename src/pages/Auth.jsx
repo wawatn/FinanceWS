@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { supabase } from '../utils/supabaseClient';
 import { PiggyBank, Mail, Lock, LogIn, UserPlus, ArrowLeft } from 'lucide-react';
 import { Card } from '../components/UI/Card';
+import logoImg from '../assets/logo.png';
 
 export const Auth = () => {
   const [loading, setLoading] = useState(false);
@@ -82,21 +83,21 @@ export const Auth = () => {
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '2rem' }}>
           <div 
             style={{ 
-              background: 'linear-gradient(135deg, var(--primary), var(--primary-hover))', 
-              color: '#000', 
-              padding: '0.75rem', 
+              width: '56px',
+              height: '56px',
               borderRadius: '16px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               marginBottom: '1rem',
-              boxShadow: '0 8px 24px rgba(0, 230, 118, 0.2)'
+              overflow: 'hidden',
+              padding: '2px'
             }}
           >
-            <PiggyBank size={32} />
+            <img src={logoImg} alt="WSFinances Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           </div>
           <h2 style={{ fontSize: '1.5rem', fontWeight: 800, textAlign: 'center', marginBottom: '0.25rem' }}>
-            FinanceWS
+            WSFinances
           </h2>
           <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
             {isForgotPassword ? 'Recuperação de Acesso' : 'Controle financeiro pessoal inteligente na nuvem'}

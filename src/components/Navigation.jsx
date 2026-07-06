@@ -1,4 +1,5 @@
 import React from 'react';
+import logoImg from '../assets/logo.png';
 import { 
   LayoutDashboard, 
   ArrowLeftRight, 
@@ -37,10 +38,10 @@ export const Navigation = ({ activePage, setActivePage, onOpenAddTransaction, on
       {/* SIDEBAR FOR DESKTOP */}
       <aside className="sidebar">
         <div className="sidebar-header">
-          <div className="logo-icon">
-            <PiggyBank size={24} />
+          <div className="logo-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderRadius: '8px', padding: '2px' }}>
+            <img src={logoImg} alt="WSFinances Logo" style={{ width: '26px', height: '26px', objectFit: 'contain' }} />
           </div>
-          <span className="logo-text brand-font">FinanceWS</span>
+          <span className="logo-text brand-font">WSFinances</span>
         </div>
         
         <ul className="sidebar-menu">
