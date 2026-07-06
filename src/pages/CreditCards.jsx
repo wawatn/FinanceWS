@@ -747,7 +747,15 @@ export const CreditCards = ({
 
   // RENDERIZAÇÃO 1: DETALHE DO CARTÃO SELECIONADO
   if (selectedCard) {
-    const cardData = cardsWithData.find(c => c.id === selectedCard.id);
+    const cardInfo = processedCards.find(c => c.cardRaw.id === selectedCard.id);
+    const cardData = cardInfo ? {
+      ...cardInfo.cardRaw,
+      brand: cardInfo.brand,
+      linkedAccount: cardInfo.linkedAccount,
+      cardColor: cardInfo.cardColor,
+      closingDay: cardInfo.closingDay,
+      dueDay: cardInfo.dueDay
+    } : selectedCard;
     
     // Obter ciclo para o mês/ano selecionado na navegação detalhada
     const { start, end } = getCardCycleRange(cardData, detailYear, detailMonth);
