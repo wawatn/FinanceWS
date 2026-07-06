@@ -80,23 +80,8 @@ export const Auth = () => {
           border: '1px solid var(--border)'
         }}
       >
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '2rem' }}>
-          <div 
-            style={{ 
-              width: '56px',
-              height: '56px',
-              borderRadius: '16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: '1rem',
-              overflow: 'hidden',
-              padding: '2px'
-            }}
-          >
-            <img src={logoImg} alt="WSFinances Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-          </div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, textAlign: 'center', marginBottom: '0.25rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <h2 style={{ fontSize: '2rem', fontWeight: 900, textAlign: 'center', marginBottom: '0.5rem', color: 'var(--primary)', letterSpacing: '-0.5px' }}>
             WSFinances
           </h2>
           <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>

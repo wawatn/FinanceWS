@@ -37,11 +37,8 @@ export const Navigation = ({ activePage, setActivePage, onOpenAddTransaction, on
     <>
       {/* SIDEBAR FOR DESKTOP */}
       <aside className="sidebar">
-        <div className="sidebar-header">
-          <div className="logo-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderRadius: '8px', padding: '2px' }}>
-            <img src={logoImg} alt="WSFinances Logo" style={{ width: '26px', height: '26px', objectFit: 'contain' }} />
-          </div>
-          <span className="logo-text brand-font">WSFinances</span>
+        <div className="sidebar-header" style={{ paddingLeft: '1rem', height: '60px', display: 'flex', alignItems: 'center' }}>
+          <span className="logo-text brand-font" style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--primary)', letterSpacing: '-0.5px' }}>WSFinances</span>
         </div>
         
         <ul className="sidebar-menu">
