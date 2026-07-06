@@ -145,30 +145,59 @@ export const CreditCards = ({
     const linkedAccount = accountPart || 'none';
     const cardColor = colorPart || 'var(--primary)';
 
-    // Calcular ciclo ativo atual (mês/ano de hoje)
-    const { start, end } = getCardCycleRange(card, today.getFullYear(), today.getMonth());
-    
-    // Somar transações do cartão nesse ciclo
-    const cycleTxs = transactions.filter(tx => {
+    const closingDay = card.closing_day || card.closingDay || 5;
+    const dueDay = card.due_day || card.dueDay || 10;
+
+    // A. Calcular ciclo para o mês atual
+    const currentCycle = getCardCycleRange(card, today.getFullYear(), today.getMonth());
+    const txsInCurrentCycle = transactions.filter(tx => {
       if (tx.cardId !== card.id) return false;
       const txDate = new Date(tx.date + 'T00:00:00');
-      return txDate >= start && txDate <= end;
+      return txDate >= currentCycle.start && txDate <= currentCycle.end;
     });
+    const currentCycleTotal = txsInCurrentCycle.reduce((sum, tx) => sum + tx.amount, 0);
 
-    const invoiceTotal = cycleTxs.reduce((sum, tx) => sum + tx.amount, 0);
+    // B. Verificar se o fechamento já passou no mês atual e se a fatura foi paga
+    const isClosingPassed = currentDay > closingDay;
+    const hasPayment = transactions.some(tx => 
+      tx.type === 'expense' && 
+      tx.description === `Pagamento Fatura - ${card.name}` && 
+      new Date(tx.date + 'T00:00:00').getMonth() === today.getMonth() && 
+      new Date(tx.date + 'T00:00:00').getFullYear() === today.getFullYear()
+    );
+
+    // Se o fechamento passou, tem compras acumuladas e não foi paga, a fatura está FECHADA
+    const isClosed = isClosingPassed && currentCycleTotal > 0 && !hasPayment;
+
+    // Determinar qual ciclo e total exibir no card da dashboard
+    let activeCycle = currentCycle;
+    let invoiceTotal = currentCycleTotal;
+
+    if (isClosingPassed && (currentCycleTotal === 0 || hasPayment)) {
+      // O fechamento passou, mas está paga ou vazia: mostrar o ciclo seguinte (Fatura Aberta ativa agora)
+      activeCycle = getCardCycleRange(card, today.getFullYear(), today.getMonth() + 1);
+      const txsInNextCycle = transactions.filter(tx => {
+        if (tx.cardId !== card.id) return false;
+        const txDate = new Date(tx.date + 'T00:00:00');
+        return txDate >= activeCycle.start && txDate <= activeCycle.end;
+      });
+      invoiceTotal = txsInNextCycle.reduce((sum, tx) => sum + tx.amount, 0);
+    }
+
     const availableLimit = card.limit - invoiceTotal;
-
-    // Verificar se a fatura atual está fechada (dia atual > dia fechamento)
-    const isClosed = currentDay > card.closingDay;
 
     return {
       ...card,
       brand,
       linkedAccount,
       cardColor,
+      closingDay,
+      dueDay,
       invoiceTotal,
       availableLimit,
-      isClosed
+      isClosed,
+      cycleStart: activeCycle.start,
+      cycleEnd: activeCycle.end
     };
   });
 
@@ -495,7 +524,7 @@ export const CreditCards = ({
                   <div>
                     <strong style={{ fontSize: '1rem', display: 'block' }}>{card.name}</strong>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.2rem', marginTop: '0.2rem' }}>
-                      <Calendar size={12} /> Fechamento dia {card.closingDay}
+                      <Calendar size={12} /> Fecha dia {card.closingDay} • Vence dia {card.dueDay}
                     </span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
@@ -574,7 +603,7 @@ export const CreditCards = ({
                   <div>
                     <strong style={{ fontSize: '1rem', display: 'block' }}>{card.name}</strong>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.2rem', marginTop: '0.2rem' }}>
-                      <Calendar size={12} /> Vencimento dia {card.dueDay} (Fechada)
+                      <Calendar size={12} /> Fecha dia {card.closingDay} • Vence dia {card.dueDay} (Fechada)
                     </span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>

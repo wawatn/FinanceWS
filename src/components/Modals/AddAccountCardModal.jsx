@@ -71,8 +71,8 @@ export const AddAccountCardModal = ({ isOpen, onClose, onSave, type, editingItem
         setCardName(editingItem.name || '');
         setCardLimit(formatValue(editingItem.limit));
         setCardInvoice(formatValue(editingItem.invoice));
-        setCardClosingDay(editingItem.closingDay || 5);
-        setCardDueDay(editingItem.dueDay || 10);
+        setCardClosingDay(editingItem.closing_day || editingItem.closingDay || 5);
+        setCardDueDay(editingItem.due_day || editingItem.dueDay || 10);
         setCardColor(colorPart || PRESET_COLORS[0]);
         setCardBrand(brandPart || 'mastercard');
         setCardLinkedAccount(accountPart || 'none');
