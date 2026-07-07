@@ -120,9 +120,9 @@ export const AddCardTransactionModal = ({
       if (match) setCategory(match);
     }
     if (res.cardId) setCardId(res.cardId);
-    if (res.installments) {
+    if (res.isInstallment) {
       setIsInstallment(true);
-      setInstallmentsCount(res.installments);
+      setInstallmentsCount(res.installmentCount);
     }
   };
 

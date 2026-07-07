@@ -38,10 +38,142 @@ const parseRawValue = (str) => {
   return parseFloat(str) || 0;
 };
 
+// Função para converter números escritos por extenso em dígitos (ex: "trinta e cinco" -> "35")
+const translateWrittenNumbers = (text) => {
+  if (!text) return '';
+  
+  const numberWordsMap = {
+    'zero': 0, 'um': 1, 'uma': 1, 'dois': 2, 'duas': 2, 'tres': 3, 'quatro': 4,
+    'cinco': 5, 'seis': 6, 'sete': 7, 'oito': 8, 'nove': 9, 'dez': 10,
+    'onze': 11, 'doze': 12, 'treze': 13, 'catorze': 14, 'quatorze': 14, 'quinze': 15,
+    'dezesseis': 16, 'dezessete': 17, 'dezoito': 18, 'dezenove': 19, 'vinte': 20,
+    'trinta': 30, 'quarenta': 40, 'cinquenta': 50, 'sessenta': 60, 'setenta': 70,
+    'oitenta': 80, 'noventa': 90, 'cem': 100, 'cento': 100, 'duzentos': 200,
+    'trezentos': 300, 'quatrocentos': 400, 'quinhentos': 500, 'seiscentos': 600,
+    'setecentos': 700, 'oitocentos': 800, 'novecentos': 900, 'mil': 1000
+  };
+
+  const normalized = text.toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+  const tokens = normalized.split(/(\s+)/);
+  const result = [];
+  
+  let i = 0;
+  while (i < tokens.length) {
+    const token = tokens[i].trim();
+    
+    if (numberWordsMap[token] !== undefined) {
+      const numberSequence = [token];
+      let j = i + 1;
+      
+      while (j < tokens.length) {
+        const nextToken = tokens[j].trim();
+        if (nextToken === '') {
+          j++;
+          continue;
+        }
+        if (nextToken === 'e') {
+          let nextVal = undefined;
+          let k = j + 1;
+          while (k < tokens.length) {
+            const lookahead = tokens[k].trim();
+            if (lookahead === '') {
+              k++;
+              continue;
+            }
+            nextVal = numberWordsMap[lookahead];
+            break;
+          }
+          
+          if (nextVal !== undefined) {
+            let tempGroup = 0;
+            for (const w of numberSequence) {
+              if (w === 'e') continue;
+              const val = numberWordsMap[w];
+              if (val !== undefined && val !== 1000) tempGroup += val;
+            }
+            if (nextVal !== 1000 && tempGroup > 0 && nextVal >= tempGroup) {
+              break;
+            }
+            numberSequence.push(nextToken);
+            j++;
+          } else {
+            break;
+          }
+        } else if (numberWordsMap[nextToken] !== undefined) {
+          const nextVal = numberWordsMap[nextToken];
+          let tempGroup = 0;
+          for (const w of numberSequence) {
+            if (w === 'e') continue;
+            const val = numberWordsMap[w];
+            if (val !== undefined && val !== 1000) tempGroup += val;
+          }
+          if (nextVal !== 1000 && tempGroup > 0 && nextVal >= tempGroup) {
+            break;
+          }
+          numberSequence.push(nextToken);
+          j++;
+        } else {
+          break;
+        }
+      }
+
+      // Voltar j se terminar em espaço para não perder o espaço
+      while (j > i && tokens[j - 1].trim() === '') {
+        j--;
+      }
+      
+      // Limpar conectivos "e" no final e voltar j
+      while (numberSequence.length > 0 && numberSequence[numberSequence.length - 1] === 'e') {
+        numberSequence.pop();
+        j--;
+        while (j > i && tokens[j - 1].trim() === '') {
+          j--;
+        }
+      }
+      
+      if (numberSequence.length > 0) {
+        let total = 0;
+        let currentGroup = 0;
+        
+        for (const w of numberSequence) {
+          if (w === 'e') continue;
+          const val = numberWordsMap[w];
+          if (val !== undefined) {
+            if (val === 1000) {
+              if (currentGroup === 0) currentGroup = 1;
+              total += currentGroup * 1000;
+              currentGroup = 0;
+            } else {
+              currentGroup += val;
+            }
+          }
+        }
+        const finalValue = total + currentGroup;
+        result.push(finalValue.toString());
+        i = j;
+      } else {
+        result.push(tokens[i]);
+        i++;
+      }
+    } else {
+      result.push(tokens[i]);
+      i++;
+    }
+  }
+  
+  return result.join('');
+};
+
 export const parseSmartInput = (text, accounts = [], cards = [], defaultAccountId = '') => {
   if (!text || text.trim() === '') return null;
 
-  const normalized = text.toLowerCase()
+  // Pré-processar para converter números escritos por extenso em dígitos
+  const preProcessedText = translateWrittenNumbers(text);
+
+  const normalized = preProcessedText.toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, ''); // Remove acentos
 
