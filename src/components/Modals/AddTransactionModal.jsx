@@ -16,7 +16,7 @@ const CATEGORIES = [
   'Outros'
 ];
 
-export const AddTransactionModal = ({ isOpen, onClose, onSave, editingTransaction, accounts, defaultAccountId, customCategories = [] }) => {
+export const AddTransactionModal = ({ isOpen, onClose, onSave, editingTransaction, accounts, cards = [], defaultAccountId, customCategories = [] }) => {
   const allCategories = [
     'Alimentação',
     'Transporte',
